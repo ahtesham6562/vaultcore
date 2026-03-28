@@ -1,0 +1,52 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vaultcore-db
+    environment:
+      POSTGRES_DB: vaultcore
+      POSTGRES_USER: vaultuser
+      POSTGRES_PASSWORD: vaultpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vaultuser -d vaultcore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vaultcore-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/vaultcore
+      SPRING_DATASOURCE_USERNAME: vaultuser
+      SPRING_DATASOURCE_PASSWORD: vaultpass
+      JWT_SECRET: vaultcore-super-secret-jwt-key-2024
+      JWT_EXPIRATION: 86400000
+      FRAUD_THRESHOLD: 50000
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vaultcore-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
