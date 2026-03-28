@@ -4,15 +4,15 @@ spring:
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/vaultcore}
-    username: ${SPRING_DATASOURCE_USERNAME:vaultuser}
-    password: ${SPRING_DATASOURCE_PASSWORD:vaultpass}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:ahtesham@6562}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     show-sql: false
     properties:
       hibernate:
@@ -22,16 +22,21 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    validate-on-migrate: false
+
+
+
+
 
   threads:
     virtual:
       enabled: true
 
 server:
-  port: 8080
+  port: 8081
 
 jwt:
-  secret: ${JWT_SECRET:vaultcore-dev-secret-key-change-in-production-min-256-bits}
+  secret: ${JWT_SECRET:dmF1bHRjb3JlU3VwZXJTZWNyZXRLZXlGb3JKV1RUb2tlbkdlbmVyYXRpb24yMDI2}
   expiration: ${JWT_EXPIRATION:86400000}
   refresh-expiration: 604800000
 
@@ -49,5 +54,6 @@ management:
 
 logging:
   level:
-    com.vaultcore: DEBUG
+    vaultcore_backend: DEBUG
     org.springframework.security: INFO
+    org.springframework.web: DEBUG

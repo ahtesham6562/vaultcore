@@ -1,9 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TYPE entry_type AS ENUM ('DEBIT', 'CREDIT');
-CREATE TYPE transaction_status AS ENUM ('PENDING', 'COMMITTED', 'FAILED', 'PENDING_2FA');
-CREATE TYPE account_status AS ENUM ('ACTIVE', 'SUSPENDED', 'CLOSED');
-
 CREATE TABLE accounts (
     id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     account_no   VARCHAR(20) UNIQUE NOT NULL,
@@ -11,7 +7,7 @@ CREATE TABLE accounts (
     email        VARCHAR(150) UNIQUE NOT NULL,
     phone        VARCHAR(15),
     balance      NUMERIC(15, 2) NOT NULL DEFAULT 0.00 CHECK (balance >= 0),
-    status       account_status NOT NULL DEFAULT 'ACTIVE',
+    status       VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -20,7 +16,7 @@ CREATE TABLE ledger_entry (
     id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tx_ref        VARCHAR(30) NOT NULL,
     account_id    UUID NOT NULL REFERENCES accounts(id),
-    entry_type    entry_type NOT NULL,
+    entry_type    VARCHAR(10) NOT NULL,
     amount        NUMERIC(15, 2) NOT NULL CHECK (amount > 0),
     balance_after NUMERIC(15, 2) NOT NULL CHECK (balance_after >= 0),
     description   VARCHAR(255),
@@ -48,7 +44,7 @@ CREATE TABLE transactions (
     from_account_id UUID REFERENCES accounts(id),
     to_account_id   UUID REFERENCES accounts(id),
     amount          NUMERIC(15, 2) NOT NULL CHECK (amount > 0),
-    status          transaction_status NOT NULL DEFAULT 'PENDING',
+    status          VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     fraud_flagged   BOOLEAN NOT NULL DEFAULT false,
     otp_verified    BOOLEAN NOT NULL DEFAULT false,
     description     VARCHAR(255),
@@ -97,11 +93,6 @@ CREATE TABLE stock_holdings (
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(account_id, symbol)
 );
-
-INSERT INTO accounts (account_no, owner_name, email, phone, balance) VALUES
-('ACC-00001', 'System Income Account', 'system@vaultcore.in', NULL, 9999999.00),
-('ACC-00482', 'Aryan Kumar', 'aryan@vaultcore.in', '+919876543210', 284320.00),
-('ACC-00483', 'Priya Sharma', 'priya@vaultcore.in', '+919876543211', 150000.00);
 
 CREATE INDEX idx_ledger_account ON ledger_entry(account_id);
 CREATE INDEX idx_ledger_tx_ref ON ledger_entry(tx_ref);
