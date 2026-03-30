@@ -1,10 +1,39 @@
+import { useState, useEffect } from 'react';
 import authService from '../services/authService';
+import transferService from '../services/transferService';
+import SendMoneyPage from './SendMoneyPage';
 
 export default function DashboardPage({ user, onLogout }) {
+    const [balance, setBalance] = useState(null);
+    const [showSendMoney, setShowSendMoney] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchBalance();
+    }, []);
+
+    const fetchBalance = async () => {
+        try {
+            const data = await transferService.getBalance();
+            setBalance(data.balance);
+        } catch (err) {
+            console.error('Balance fetch failed:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleLogout = () => {
         authService.logout();
         onLogout();
     };
+
+    if (showSendMoney) {
+        return <SendMoneyPage onBack={() => {
+            setShowSendMoney(false);
+            fetchBalance();
+        }} />;
+    }
 
     return (
         <div style={styles.container}>
@@ -29,21 +58,28 @@ export default function DashboardPage({ user, onLogout }) {
                     <div style={styles.card}>
                         <div style={styles.cardIcon}>💰</div>
                         <div style={styles.cardTitle}>Balance</div>
-                        <div style={styles.cardValue}>₹0.00</div>
+                        <div style={styles.cardValue}>
+                            {loading ? '...' : `₹${parseFloat(balance).toFixed(2)}`}
+                        </div>
                         <div style={styles.cardSub}>Available balance</div>
                     </div>
-                    <div style={styles.card}>
+
+                    <div
+                        style={{...styles.card, cursor: 'pointer'}}
+                        onClick={() => setShowSendMoney(true)}>
                         <div style={styles.cardIcon}>↑</div>
                         <div style={styles.cardTitle}>Send Money</div>
                         <div style={styles.cardValue}>Transfer</div>
-                        <div style={styles.cardSub}>Coming in Week 2</div>
+                        <div style={{...styles.cardSub, color: '#6c63ff'}}>Click to send →</div>
                     </div>
+
                     <div style={styles.card}>
                         <div style={styles.cardIcon}>📈</div>
                         <div style={styles.cardTitle}>Portfolio</div>
                         <div style={styles.cardValue}>Stocks</div>
                         <div style={styles.cardSub}>Coming in Week 3</div>
                     </div>
+
                     <div style={styles.card}>
                         <div style={styles.cardIcon}>📄</div>
                         <div style={styles.cardTitle}>Statements</div>
@@ -64,9 +100,7 @@ const styles = {
         fontFamily: 'sans-serif'
     },
     navbar: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '16px 32px',
         background: 'rgba(255,255,255,0.05)',
         borderBottom: '1px solid rgba(255,255,255,0.1)'
@@ -77,13 +111,10 @@ const styles = {
     navRight: { display: 'flex', alignItems: 'center', gap: '16px' },
     navUser: { color: '#aaa', fontSize: '14px' },
     logoutBtn: {
-        padding: '8px 16px',
-        borderRadius: '8px',
+        padding: '8px 16px', borderRadius: '8px',
         border: '1px solid rgba(255,255,255,0.2)',
-        background: 'transparent',
-        color: '#fff',
-        cursor: 'pointer',
-        fontSize: '14px'
+        background: 'transparent', color: '#fff',
+        cursor: 'pointer', fontSize: '14px'
     },
     content: { padding: '40px 32px' },
     welcome: { fontSize: '28px', margin: '0 0 8px' },
@@ -96,9 +127,7 @@ const styles = {
     card: {
         background: 'rgba(255,255,255,0.05)',
         border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '16px',
-        padding: '24px',
-        textAlign: 'center'
+        borderRadius: '16px', padding: '24px', textAlign: 'center'
     },
     cardIcon: { fontSize: '32px', marginBottom: '12px' },
     cardTitle: { color: '#888', fontSize: '13px', marginBottom: '8px' },
