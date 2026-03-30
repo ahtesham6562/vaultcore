@@ -3,7 +3,6 @@ package vaultcore_backend.security;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -12,24 +11,19 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.secret}")
-    private String secret;
-
-    @Value("${jwt.expiration}")
-    private long accessExpiry;
-
-    @Value("${jwt.refresh-expiration}")
-    private long refreshExpiry;
+    private static final String SECRET = "dmF1bHRjb3JlU3VwZXJTZWNyZXRLZXlGb3JKV1RUb2tlbkdlbmVyYXRpb24yMDI2";
+    private static final long ACCESS_EXPIRY = 86400000L;
+    private static final long REFRESH_EXPIRY = 604800000L;
 
     private SecretKey getKey() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET));
     }
 
     public String generateAccessToken(String username) {
         return Jwts.builder()
                 .subject(username)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + accessExpiry))
+                .expiration(new Date(System.currentTimeMillis() + ACCESS_EXPIRY))
                 .signWith(getKey())
                 .compact();
     }
@@ -38,7 +32,7 @@ public class JwtUtil {
         return Jwts.builder()
                 .subject(username)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + refreshExpiry))
+                .expiration(new Date(System.currentTimeMillis() + REFRESH_EXPIRY))
                 .signWith(getKey())
                 .compact();
     }
