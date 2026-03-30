@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import authService from '../services/authService';
 import transferService from '../services/transferService';
 import SendMoneyPage from './SendMoneyPage';
+import PortfolioPage from './PortfolioPage';
 
 export default function DashboardPage({ user, onLogout }) {
     const [balance, setBalance] = useState(null);
     const [showSendMoney, setShowSendMoney] = useState(false);
+    const [showPortfolio, setShowPortfolio] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -33,6 +35,10 @@ export default function DashboardPage({ user, onLogout }) {
             setShowSendMoney(false);
             fetchBalance();
         }} />;
+    }
+
+    if (showPortfolio) {
+        return <PortfolioPage onBack={() => setShowPortfolio(false)} />;
     }
 
     return (
@@ -64,8 +70,7 @@ export default function DashboardPage({ user, onLogout }) {
                         <div style={styles.cardSub}>Available balance</div>
                     </div>
 
-                    <div
-                        style={{...styles.card, cursor: 'pointer'}}
+                    <div style={{...styles.card, cursor: 'pointer'}}
                         onClick={() => setShowSendMoney(true)}>
                         <div style={styles.cardIcon}>↑</div>
                         <div style={styles.cardTitle}>Send Money</div>
@@ -73,11 +78,12 @@ export default function DashboardPage({ user, onLogout }) {
                         <div style={{...styles.cardSub, color: '#6c63ff'}}>Click to send →</div>
                     </div>
 
-                    <div style={styles.card}>
+                    <div style={{...styles.card, cursor: 'pointer'}}
+                        onClick={() => setShowPortfolio(true)}>
                         <div style={styles.cardIcon}>📈</div>
                         <div style={styles.cardTitle}>Portfolio</div>
                         <div style={styles.cardValue}>Stocks</div>
-                        <div style={styles.cardSub}>Coming in Week 3</div>
+                        <div style={{...styles.cardSub, color: '#6c63ff'}}>Click to trade →</div>
                     </div>
 
                     <div style={styles.card}>
@@ -93,42 +99,19 @@ export default function DashboardPage({ user, onLogout }) {
 }
 
 const styles = {
-    container: {
-        minHeight: '100vh',
-        background: '#0f0c29',
-        color: '#fff',
-        fontFamily: 'sans-serif'
-    },
-    navbar: {
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '16px 32px',
-        background: 'rgba(255,255,255,0.05)',
-        borderBottom: '1px solid rgba(255,255,255,0.1)'
-    },
+    container: { minHeight: '100vh', background: '#0f0c29', color: '#fff', fontFamily: 'sans-serif' },
+    navbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 32px', background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.1)' },
     navLeft: { display: 'flex', alignItems: 'center', gap: '10px' },
     navLogo: { fontSize: '28px' },
     navTitle: { fontSize: '20px', fontWeight: 'bold', color: '#fff' },
     navRight: { display: 'flex', alignItems: 'center', gap: '16px' },
     navUser: { color: '#aaa', fontSize: '14px' },
-    logoutBtn: {
-        padding: '8px 16px', borderRadius: '8px',
-        border: '1px solid rgba(255,255,255,0.2)',
-        background: 'transparent', color: '#fff',
-        cursor: 'pointer', fontSize: '14px'
-    },
+    logoutBtn: { padding: '8px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#fff', cursor: 'pointer', fontSize: '14px' },
     content: { padding: '40px 32px' },
     welcome: { fontSize: '28px', margin: '0 0 8px' },
     role: { color: '#888', fontSize: '14px', marginBottom: '32px' },
-    grid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '20px'
-    },
-    card: {
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '16px', padding: '24px', textAlign: 'center'
-    },
+    grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' },
+    card: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '24px', textAlign: 'center' },
     cardIcon: { fontSize: '32px', marginBottom: '12px' },
     cardTitle: { color: '#888', fontSize: '13px', marginBottom: '8px' },
     cardValue: { fontSize: '22px', fontWeight: 'bold', marginBottom: '6px' },
