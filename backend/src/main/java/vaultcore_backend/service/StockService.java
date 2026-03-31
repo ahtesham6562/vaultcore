@@ -23,7 +23,6 @@ public class StockService {
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
 
-    // Mock stock prices
     private static final Map<String, BigDecimal> BASE_PRICES = new HashMap<>();
 
     static {
@@ -37,21 +36,15 @@ public class StockService {
         BASE_PRICES.put("ITC", new BigDecimal("435.20"));
     }
 
-    // Mock price with random fluctuation
     public Map<String, Object> getStockPrice(String symbol) {
         long start = System.currentTimeMillis();
-
         String sym = symbol.toUpperCase();
         BigDecimal basePrice = BASE_PRICES.getOrDefault(sym, new BigDecimal("100.00"));
-
-        // Random fluctuation ±2%
         double fluctuation = 1 + (Math.random() * 0.04 - 0.02);
         BigDecimal currentPrice = basePrice.multiply(
                 new BigDecimal(fluctuation)).setScale(2, RoundingMode.HALF_UP);
-
         long latency = System.currentTimeMillis() - start;
         log.info("Stock price fetched for {} in {}ms", sym, latency);
-
         return Map.of(
                 "symbol", sym,
                 "price", currentPrice,
@@ -84,11 +77,9 @@ public class StockService {
             throw new RuntimeException("Insufficient balance");
         }
 
-        // Balance deduct karo
         account.setBalance(account.getBalance().subtract(totalCost));
         accountRepository.save(account);
 
-        // Holdings update karo
         Optional<StockHolding> existing =
                 stockHoldingRepository.findByAccountIdAndSymbol(account.getId(), sym);
 
@@ -118,6 +109,47 @@ public class StockService {
                 "quantity", quantity,
                 "price", price,
                 "totalCost", totalCost,
+                "remainingBalance", account.getBalance()
+        );
+    }
+
+    @Transactional
+    public Map<String, Object> sellStock(String username, String symbol, Integer quantity) {
+        Account account = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"))
+                .getAccount();
+
+        String sym = symbol.toUpperCase();
+
+        StockHolding holding = stockHoldingRepository
+                .findByAccountIdAndSymbol(account.getId(), sym)
+                .orElseThrow(() -> new RuntimeException("You don't own " + sym));
+
+        if (holding.getQuantity() < quantity) {
+            throw new RuntimeException("Insufficient shares. You have: " + holding.getQuantity());
+        }
+
+        Map<String, Object> priceData = getStockPrice(sym);
+        BigDecimal price = (BigDecimal) priceData.get("price");
+        BigDecimal totalEarned = price.multiply(new BigDecimal(quantity));
+
+        account.setBalance(account.getBalance().add(totalEarned));
+        accountRepository.save(account);
+
+        int newQty = holding.getQuantity() - quantity;
+        if (newQty == 0) {
+            stockHoldingRepository.delete(holding);
+        } else {
+            holding.setQuantity(newQty);
+            stockHoldingRepository.save(holding);
+        }
+
+        return Map.of(
+                "message", "Stock sold successfully!",
+                "symbol", sym,
+                "quantity", quantity,
+                "price", price,
+                "totalEarned", totalEarned,
                 "remainingBalance", account.getBalance()
         );
     }

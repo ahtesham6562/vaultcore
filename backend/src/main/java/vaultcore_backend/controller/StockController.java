@@ -42,6 +42,16 @@ public class StockController {
         return ResponseEntity.ok(stockService.buyStock(username, symbol, quantity));
     }
 
+    @PostMapping("/sell")
+    public ResponseEntity<Map<String, Object>> sellStock(
+            Authentication authentication,
+            @RequestBody Map<String, Object> request) {
+        String username = authentication.getName();
+        String symbol = (String) request.get("symbol");
+        Integer quantity = (Integer) request.get("quantity");
+        return ResponseEntity.ok(stockService.sellStock(username, symbol, quantity));
+    }
+
     @GetMapping("/portfolio")
     public ResponseEntity<List<Map<String, Object>>> getPortfolio(
             Authentication authentication) {

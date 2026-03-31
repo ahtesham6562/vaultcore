@@ -13,7 +13,9 @@ export default function PortfolioPage({ onBack }) {
     const [portfolio, setPortfolio] = useState([]);
     const [loading, setLoading] = useState(true);
     const [buyForm, setBuyForm] = useState({ symbol: '', quantity: '' });
+    const [sellForm, setSellForm] = useState({ symbol: '', quantity: '' });
     const [buyMsg, setBuyMsg] = useState('');
+    const [sellMsg, setSellMsg] = useState('');
     const [activeTab, setActiveTab] = useState('market');
 
     useEffect(() => {
@@ -31,18 +33,14 @@ export default function PortfolioPage({ onBack }) {
         try {
             const data = await stockService.getAllPrices();
             setPrices(data);
-        } catch (err) {
-            console.error(err);
-        }
+        } catch (err) { console.error(err); }
     };
 
     const fetchPortfolio = async () => {
         try {
             const data = await stockService.getPortfolio();
             setPortfolio(data);
-        } catch (err) {
-            console.error(err);
-        }
+        } catch (err) { console.error(err); }
     };
 
     const handleBuy = async () => {
@@ -51,10 +49,7 @@ export default function PortfolioPage({ onBack }) {
             return;
         }
         try {
-            const data = await stockService.buyStock(
-                buyForm.symbol,
-                parseInt(buyForm.quantity)
-            );
+            const data = await stockService.buyStock(buyForm.symbol, parseInt(buyForm.quantity));
             setBuyMsg(`✓ ${data.message} — ₹${data.totalCost} deducted`);
             setBuyForm({ symbol: '', quantity: '' });
             fetchPortfolio();
@@ -63,30 +58,39 @@ export default function PortfolioPage({ onBack }) {
         }
     };
 
-    const totalInvested = portfolio.reduce(
-        (sum, h) => sum + parseFloat(h.invested), 0);
-    const totalValue = portfolio.reduce(
-        (sum, h) => sum + parseFloat(h.currentValue), 0);
+    const handleSell = async () => {
+        if (!sellForm.symbol || !sellForm.quantity) {
+            setSellMsg('Symbol aur quantity required!');
+            return;
+        }
+        try {
+            const data = await stockService.sellStock(sellForm.symbol, parseInt(sellForm.quantity));
+            setSellMsg(`✓ ${data.message} — ₹${data.totalEarned} credited`);
+            setSellForm({ symbol: '', quantity: '' });
+            fetchPortfolio();
+        } catch (err) {
+            setSellMsg(err.response?.data?.message || 'Sale failed!');
+        }
+    };
+
+    const totalInvested = portfolio.reduce((sum, h) => sum + parseFloat(h.invested), 0);
+    const totalValue = portfolio.reduce((sum, h) => sum + parseFloat(h.currentValue), 0);
     const totalPnl = totalValue - totalInvested;
 
     if (loading) return (
         <div style={styles.container}>
-            <div style={{ color: '#fff', textAlign: 'center', paddingTop: '100px' }}>
-                Loading...
-            </div>
+            <div style={{ color: '#fff', textAlign: 'center', paddingTop: '100px' }}>Loading...</div>
         </div>
     );
 
     return (
         <div style={styles.container}>
-            {/* Header */}
             <div style={styles.header}>
                 <button style={styles.backBtn} onClick={onBack}>← Back</button>
                 <h2 style={styles.title}>📈 Portfolio Dashboard</h2>
                 <span style={styles.live}>● LIVE</span>
             </div>
 
-            {/* Stats */}
             {portfolio.length > 0 && (
                 <div style={styles.statsRow}>
                     <div style={styles.statCard}>
@@ -99,25 +103,22 @@ export default function PortfolioPage({ onBack }) {
                     </div>
                     <div style={styles.statCard}>
                         <div style={styles.statLabel}>P&L</div>
-                        <div style={{
-                            ...styles.statValue,
-                            color: totalPnl >= 0 ? '#4caf50' : '#ff6b6b'
-                        }}>
+                        <div style={{ ...styles.statValue, color: totalPnl >= 0 ? '#4caf50' : '#ff6b6b' }}>
                             {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toFixed(2)}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Tabs */}
             <div style={styles.tabs}>
-                {['market', 'portfolio', 'buy'].map(tab => (
+                {['market', 'portfolio', 'buy', 'sell'].map(tab => (
                     <button
                         key={tab}
                         style={activeTab === tab ? styles.tabActive : styles.tabInactive}
                         onClick={() => setActiveTab(tab)}>
                         {tab === 'market' ? '📊 Market' :
-                         tab === 'portfolio' ? '💼 My Portfolio' : '🛒 Buy Stock'}
+                         tab === 'portfolio' ? '💼 Portfolio' :
+                         tab === 'buy' ? '🛒 Buy' : '💸 Sell'}
                     </button>
                 ))}
             </div>
@@ -133,20 +134,15 @@ export default function PortfolioPage({ onBack }) {
                                 <XAxis dataKey="symbol" stroke="#888" fontSize={12} />
                                 <YAxis stroke="#888" fontSize={12} />
                                 <Tooltip
-                                    contentStyle={{
-                                        background: '#1a1a2e',
-                                        border: '1px solid #333',
-                                        color: '#fff'
-                                    }}
+                                    contentStyle={{ background: '#1a1a2e', border: '1px solid #333', color: '#fff' }}
                                     formatter={(val) => [`₹${val}`, 'Price']}
                                 />
                                 <Bar dataKey="price" fill="#6c63ff" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
-
                     <div style={styles.priceGrid}>
-                        {prices.map((stock, i) => (
+                        {prices.map((stock) => (
                             <div key={stock.symbol} style={styles.priceCard}>
                                 <div style={styles.symbol}>{stock.symbol}</div>
                                 <div style={styles.price}>₹{stock.price}</div>
@@ -161,64 +157,37 @@ export default function PortfolioPage({ onBack }) {
             {activeTab === 'portfolio' && (
                 <div style={styles.content}>
                     {portfolio.length === 0 ? (
-                        <div style={styles.empty}>
-                            Koi holdings nahi — Buy Stock tab se kharido!
-                        </div>
+                        <div style={styles.empty}>Koi holdings nahi — Buy tab se kharido!</div>
                     ) : (
                         <>
                             <div style={styles.chartBox}>
                                 <p style={styles.chartTitle}>Portfolio Allocation</p>
                                 <ResponsiveContainer width="100%" height={250}>
                                     <PieChart>
-                                        <Pie
-                                            data={portfolio}
-                                            dataKey="currentValue"
-                                            nameKey="symbol"
-                                            cx="50%" cy="50%"
-                                            outerRadius={80}
-                                            label={({symbol}) => symbol}>
+                                        <Pie data={portfolio} dataKey="currentValue" nameKey="symbol"
+                                            cx="50%" cy="50%" outerRadius={80} label={({ symbol }) => symbol}>
                                             {portfolio.map((_, i) => (
-                                                <Cell key={i}
-                                                    fill={COLORS[i % COLORS.length]} />
+                                                <Cell key={i} fill={COLORS[i % COLORS.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip
-                                            formatter={(val) => [`₹${val}`, 'Value']}
-                                            contentStyle={{
-                                                background: '#1a1a2e',
-                                                border: '1px solid #333',
-                                                color: '#fff'
-                                            }}
-                                        />
+                                        <Tooltip formatter={(val) => [`₹${val}`, 'Value']}
+                                            contentStyle={{ background: '#1a1a2e', border: '1px solid #333', color: '#fff' }} />
                                         <Legend />
                                     </PieChart>
                                 </ResponsiveContainer>
                             </div>
-
                             <div style={styles.holdingsList}>
                                 {portfolio.map((h, i) => (
                                     <div key={h.symbol} style={styles.holdingCard}>
-                                        <div style={{
-                                            ...styles.holdingDot,
-                                            background: COLORS[i % COLORS.length]
-                                        }} />
+                                        <div style={{ ...styles.holdingDot, background: COLORS[i % COLORS.length] }} />
                                         <div style={styles.holdingInfo}>
                                             <div style={styles.holdingSymbol}>{h.symbol}</div>
-                                            <div style={styles.holdingDetail}>
-                                                {h.quantity} shares @ ₹{h.avgCost}
-                                            </div>
+                                            <div style={styles.holdingDetail}>{h.quantity} shares @ ₹{h.avgCost}</div>
                                         </div>
                                         <div style={styles.holdingRight}>
-                                            <div style={styles.holdingValue}>
-                                                ₹{parseFloat(h.currentValue).toFixed(2)}
-                                            </div>
-                                            <div style={{
-                                                fontSize: '12px',
-                                                color: parseFloat(h.pnl) >= 0
-                                                    ? '#4caf50' : '#ff6b6b'
-                                            }}>
-                                                {parseFloat(h.pnl) >= 0 ? '+' : ''}
-                                                ₹{parseFloat(h.pnl).toFixed(2)}
+                                            <div style={styles.holdingValue}>₹{parseFloat(h.currentValue).toFixed(2)}</div>
+                                            <div style={{ fontSize: '12px', color: parseFloat(h.pnl) >= 0 ? '#4caf50' : '#ff6b6b' }}>
+                                                {parseFloat(h.pnl) >= 0 ? '+' : ''}₹{parseFloat(h.pnl).toFixed(2)}
                                             </div>
                                         </div>
                                     </div>
@@ -234,42 +203,59 @@ export default function PortfolioPage({ onBack }) {
                 <div style={styles.content}>
                     <div style={styles.buyForm}>
                         <p style={styles.chartTitle}>Stock Kharido</p>
-                        <select
-                            style={styles.input}
-                            value={buyForm.symbol}
-                            onChange={e => setBuyForm({...buyForm, symbol: e.target.value})}>
+                        <select style={styles.input} value={buyForm.symbol}
+                            onChange={e => setBuyForm({ ...buyForm, symbol: e.target.value })}>
                             <option value="">Symbol select karo</option>
                             {prices.map(s => (
-                                <option key={s.symbol} value={s.symbol}>
-                                    {s.symbol} — ₹{s.price}
-                                </option>
+                                <option key={s.symbol} value={s.symbol}>{s.symbol} — ₹{s.price}</option>
                             ))}
                         </select>
-                        <input
-                            style={styles.input}
-                            type="number"
-                            placeholder="Quantity"
+                        <input style={styles.input} type="number" placeholder="Quantity"
                             value={buyForm.quantity}
-                            onChange={e => setBuyForm({...buyForm, quantity: e.target.value})}
-                            min="1"
-                        />
+                            onChange={e => setBuyForm({ ...buyForm, quantity: e.target.value })} min="1" />
                         {buyForm.symbol && buyForm.quantity && (
                             <div style={styles.estimate}>
-                                Estimated: ₹{(
-                                    (prices.find(p => p.symbol === buyForm.symbol)?.price || 0)
-                                    * parseInt(buyForm.quantity || 0)
-                                ).toFixed(2)}
+                                Estimated: ₹{((prices.find(p => p.symbol === buyForm.symbol)?.price || 0) * parseInt(buyForm.quantity || 0)).toFixed(2)}
                             </div>
                         )}
-                        {buyMsg && (
-                            <p style={{
-                                color: buyMsg.startsWith('✓') ? '#4caf50' : '#ff6b6b',
-                                fontSize: '13px'
-                            }}>{buyMsg}</p>
+                        {buyMsg && <p style={{ color: buyMsg.startsWith('✓') ? '#4caf50' : '#ff6b6b', fontSize: '13px' }}>{buyMsg}</p>}
+                        <button style={styles.buyBtn} onClick={handleBuy}>Buy Now</button>
+                    </div>
+                </div>
+            )}
+
+            {/* Sell Tab */}
+            {activeTab === 'sell' && (
+                <div style={styles.content}>
+                    <div style={styles.buyForm}>
+                        <p style={styles.chartTitle}>Stock Becho</p>
+                        {portfolio.length === 0 ? (
+                            <div style={styles.empty}>Koi holdings nahi — pehle kharido!</div>
+                        ) : (
+                            <>
+                                <select style={styles.input} value={sellForm.symbol}
+                                    onChange={e => setSellForm({ ...sellForm, symbol: e.target.value })}>
+                                    <option value="">Symbol select karo</option>
+                                    {portfolio.map(h => (
+                                        <option key={h.symbol} value={h.symbol}>
+                                            {h.symbol} — {h.quantity} shares
+                                        </option>
+                                    ))}
+                                </select>
+                                <input style={styles.input} type="number" placeholder="Quantity"
+                                    value={sellForm.quantity}
+                                    onChange={e => setSellForm({ ...sellForm, quantity: e.target.value })} min="1" />
+                                {sellForm.symbol && sellForm.quantity && (
+                                    <div style={{ ...styles.estimate, color: '#4caf50' }}>
+                                        Estimated Earn: ₹{((prices.find(p => p.symbol === sellForm.symbol)?.price || 0) * parseInt(sellForm.quantity || 0)).toFixed(2)}
+                                    </div>
+                                )}
+                                {sellMsg && <p style={{ color: sellMsg.startsWith('✓') ? '#4caf50' : '#ff6b6b', fontSize: '13px' }}>{sellMsg}</p>}
+                                <button style={{ ...styles.buyBtn, background: '#ff6b6b' }} onClick={handleSell}>
+                                    Sell Now
+                                </button>
+                            </>
                         )}
-                        <button style={styles.buyBtn} onClick={handleBuy}>
-                            Buy Now
-                        </button>
                     </div>
                 </div>
             )}
@@ -278,101 +264,37 @@ export default function PortfolioPage({ onBack }) {
 }
 
 const styles = {
-    container: {
-        minHeight: '100vh',
-        background: '#0f0c29',
-        color: '#fff',
-        fontFamily: 'sans-serif'
-    },
-    header: {
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '16px 24px',
-        background: 'rgba(255,255,255,0.05)',
-        borderBottom: '1px solid rgba(255,255,255,0.1)'
-    },
-    backBtn: {
-        background: 'none', border: 'none',
-        color: '#888', cursor: 'pointer', fontSize: '14px'
-    },
+    container: { minHeight: '100vh', background: '#0f0c29', color: '#fff', fontFamily: 'sans-serif' },
+    header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.1)' },
+    backBtn: { background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '14px' },
     title: { color: '#fff', fontSize: '20px', margin: 0 },
     live: { color: '#4caf50', fontSize: '12px' },
-    statsRow: {
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '12px', padding: '16px 24px'
-    },
-    statCard: {
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '12px', padding: '16px', textAlign: 'center'
-    },
+    statsRow: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', padding: '16px 24px' },
+    statCard: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', textAlign: 'center' },
     statLabel: { color: '#888', fontSize: '12px', marginBottom: '8px' },
     statValue: { fontSize: '20px', fontWeight: 'bold' },
-    tabs: {
-        display: 'flex', gap: '0',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
-        padding: '0 24px'
-    },
-    tabActive: {
-        padding: '12px 20px', background: 'none',
-        border: 'none', borderBottom: '2px solid #6c63ff',
-        color: '#fff', cursor: 'pointer', fontSize: '14px'
-    },
-    tabInactive: {
-        padding: '12px 20px', background: 'none',
-        border: 'none', borderBottom: '2px solid transparent',
-        color: '#888', cursor: 'pointer', fontSize: '14px'
-    },
+    tabs: { display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 24px' },
+    tabActive: { padding: '12px 20px', background: 'none', border: 'none', borderBottom: '2px solid #6c63ff', color: '#fff', cursor: 'pointer', fontSize: '14px' },
+    tabInactive: { padding: '12px 20px', background: 'none', border: 'none', borderBottom: '2px solid transparent', color: '#888', cursor: 'pointer', fontSize: '14px' },
     content: { padding: '24px' },
-    chartBox: {
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '12px', padding: '16px', marginBottom: '20px'
-    },
+    chartBox: { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', marginBottom: '20px' },
     chartTitle: { color: '#888', fontSize: '13px', marginBottom: '12px' },
-    priceGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-        gap: '12px'
-    },
-    priceCard: {
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '10px', padding: '12px', textAlign: 'center'
-    },
+    priceGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' },
+    priceCard: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px', textAlign: 'center' },
     symbol: { color: '#888', fontSize: '11px', marginBottom: '6px' },
     price: { fontSize: '16px', fontWeight: 'bold', marginBottom: '4px' },
     latency: { color: '#4caf50', fontSize: '10px' },
     empty: { color: '#888', textAlign: 'center', padding: '40px' },
     holdingsList: { display: 'flex', flexDirection: 'column', gap: '10px' },
-    holdingCard: {
-        display: 'flex', alignItems: 'center', gap: '12px',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '10px', padding: '12px'
-    },
+    holdingCard: { display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px' },
     holdingDot: { width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0 },
     holdingInfo: { flex: 1 },
     holdingSymbol: { fontSize: '14px', fontWeight: 'bold' },
     holdingDetail: { color: '#888', fontSize: '12px' },
     holdingRight: { textAlign: 'right' },
     holdingValue: { fontSize: '14px', fontWeight: 'bold' },
-    buyForm: {
-        maxWidth: '400px', margin: '0 auto',
-        display: 'flex', flexDirection: 'column', gap: '14px'
-    },
-    input: {
-        padding: '12px 16px', borderRadius: '8px',
-        border: '1px solid rgba(255,255,255,0.1)',
-        background: 'rgba(255,255,255,0.07)',
-        color: '#fff', fontSize: '14px', outline: 'none'
-    },
-    estimate: {
-        color: '#6c63ff', fontSize: '14px',
-        textAlign: 'center', fontWeight: 'bold'
-    },
-    buyBtn: {
-        padding: '12px', borderRadius: '8px', border: 'none',
-        background: '#6c63ff', color: '#fff',
-        fontSize: '15px', cursor: 'pointer', fontWeight: 'bold'
-    }
+    buyForm: { maxWidth: '400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '14px' },
+    input: { padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.07)', color: '#fff', fontSize: '14px', outline: 'none' },
+    estimate: { color: '#6c63ff', fontSize: '14px', textAlign: 'center', fontWeight: 'bold' },
+    buyBtn: { padding: '12px', borderRadius: '8px', border: 'none', background: '#6c63ff', color: '#fff', fontSize: '15px', cursor: 'pointer', fontWeight: 'bold' }
 };

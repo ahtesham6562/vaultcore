@@ -28,6 +28,15 @@ const stockService = {
         return response.data;
     },
 
+    sellStock: async (symbol, quantity) => {
+        const response = await axios.post(
+            `${API_URL}/sell`,
+            { symbol, quantity },
+            getAuthHeader()
+        );
+        return response.data;
+    },
+
     getPortfolio: async () => {
         const response = await axios.get(
             `${API_URL}/portfolio`,
