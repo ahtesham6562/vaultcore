@@ -3,11 +3,13 @@ import authService from '../services/authService';
 import transferService from '../services/transferService';
 import SendMoneyPage from './SendMoneyPage';
 import PortfolioPage from './PortfolioPage';
+import StatementPage from './StatementPage';
 
 export default function DashboardPage({ user, onLogout }) {
     const [balance, setBalance] = useState(null);
     const [showSendMoney, setShowSendMoney] = useState(false);
     const [showPortfolio, setShowPortfolio] = useState(false);
+    const [showStatement, setShowStatement] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -39,6 +41,10 @@ export default function DashboardPage({ user, onLogout }) {
 
     if (showPortfolio) {
         return <PortfolioPage onBack={() => setShowPortfolio(false)} />;
+    }
+
+    if (showStatement) {
+        return <StatementPage onBack={() => setShowStatement(false)} />;
     }
 
     return (
@@ -86,11 +92,12 @@ export default function DashboardPage({ user, onLogout }) {
                         <div style={{...styles.cardSub, color: '#6c63ff'}}>Click to trade →</div>
                     </div>
 
-                    <div style={styles.card}>
+                    <div style={{...styles.card, cursor: 'pointer'}}
+                        onClick={() => setShowStatement(true)}>
                         <div style={styles.cardIcon}>📄</div>
                         <div style={styles.cardTitle}>Statements</div>
                         <div style={styles.cardValue}>PDF</div>
-                        <div style={styles.cardSub}>Coming in Week 4</div>
+                        <div style={{...styles.cardSub, color: '#6c63ff'}}>Click to download →</div>
                     </div>
                 </div>
             </div>
