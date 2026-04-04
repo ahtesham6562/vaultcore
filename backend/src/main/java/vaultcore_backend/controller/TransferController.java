@@ -10,6 +10,7 @@ import vaultcore_backend.dto.TransferResponse;
 import vaultcore_backend.service.TransferService;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -24,23 +25,26 @@ public class TransferController {
     public ResponseEntity<TransferResponse> transfer(
             Authentication authentication,
             @Valid @RequestBody TransferRequest request) {
-
         String username = authentication.getName();
-        TransferResponse response = transferService.transfer(username, request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(transferService.transfer(username, request));
     }
 
     @GetMapping("/balance")
     public ResponseEntity<Map<String, Object>> getBalance(
             Authentication authentication) {
-
         String username = authentication.getName();
         BigDecimal balance = transferService.getBalance(username);
-
         return ResponseEntity.ok(Map.of(
                 "username", username,
                 "balance", balance,
                 "currency", "INR"
         ));
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<List<Map<String, Object>>> getHistory(
+            Authentication authentication) {
+        String username = authentication.getName();
+        return ResponseEntity.ok(transferService.getHistory(username));
     }
 }

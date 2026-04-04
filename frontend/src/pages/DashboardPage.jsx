@@ -4,6 +4,7 @@ import transferService from '../services/transferService';
 import SendMoneyPage from './SendMoneyPage';
 import PortfolioPage from './PortfolioPage';
 import StatementPage from './StatementPage';
+import TransactionPage from './TransactionPage';
 
 export default function DashboardPage({ user, onLogout }) {
     const [balance, setBalance] = useState(null);
@@ -28,12 +29,14 @@ export default function DashboardPage({ user, onLogout }) {
     if (activePage === 'transfer') return <SendMoneyPage onBack={() => { setActivePage('dashboard'); fetchBalance(); }} />;
     if (activePage === 'portfolio') return <PortfolioPage onBack={() => setActivePage('dashboard')} />;
     if (activePage === 'statement') return <StatementPage onBack={() => setActivePage('dashboard')} />;
+    if (activePage === 'ledger') return <TransactionPage onBack={() => setActivePage('dashboard')} />;
 
     const navItems = [
         { id: 'dashboard', label: 'Overview', icon: '▦' },
         { id: 'transfer', label: 'Transfer', icon: '↑' },
         { id: 'portfolio', label: 'Portfolio', icon: '◈' },
         { id: 'statement', label: 'Statement', icon: '≡' },
+        { id: 'ledger', label: 'Ledger', icon: '▤' },
     ];
 
     return (
