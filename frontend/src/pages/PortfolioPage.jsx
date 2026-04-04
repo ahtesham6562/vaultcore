@@ -1,12 +1,8 @@
 import { useState, useEffect } from 'react';
-import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid,
-    Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
-} from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import stockService from '../services/stockService';
 
-const COLORS = ['#6c63ff', '#4caf50', '#ff6b6b', '#ffa726',
-                 '#29b6f6', '#ab47bc', '#26a69a', '#ef5350'];
+const COLORS = ['#c9a84c', '#1de8b5', '#ff4d6a', '#4d9fff', '#e8c87a', '#ab47bc', '#26a69a', '#ef5350'];
 
 export default function PortfolioPage({ onBack }) {
     const [prices, setPrices] = useState([]);
@@ -30,271 +26,313 @@ export default function PortfolioPage({ onBack }) {
     };
 
     const fetchPrices = async () => {
-        try {
-            const data = await stockService.getAllPrices();
-            setPrices(data);
-        } catch (err) { console.error(err); }
+        try { setPrices(await stockService.getAllPrices()); } catch (err) { console.error(err); }
     };
 
     const fetchPortfolio = async () => {
-        try {
-            const data = await stockService.getPortfolio();
-            setPortfolio(data);
-        } catch (err) { console.error(err); }
+        try { setPortfolio(await stockService.getPortfolio()); } catch (err) { console.error(err); }
     };
 
     const handleBuy = async () => {
-        if (!buyForm.symbol || !buyForm.quantity) {
-            setBuyMsg('Symbol aur quantity required!');
-            return;
-        }
+        if (!buyForm.symbol || !buyForm.quantity) { setBuyMsg('Symbol and quantity required.'); return; }
         try {
             const data = await stockService.buyStock(buyForm.symbol, parseInt(buyForm.quantity));
             setBuyMsg(`✓ ${data.message} — ₹${data.totalCost} deducted`);
             setBuyForm({ symbol: '', quantity: '' });
             fetchPortfolio();
-        } catch (err) {
-            setBuyMsg(err.response?.data?.message || 'Purchase failed!');
-        }
+        } catch (err) { setBuyMsg(err.response?.data?.message || 'Purchase failed.'); }
     };
 
     const handleSell = async () => {
-        if (!sellForm.symbol || !sellForm.quantity) {
-            setSellMsg('Symbol aur quantity required!');
-            return;
-        }
+        if (!sellForm.symbol || !sellForm.quantity) { setSellMsg('Symbol and quantity required.'); return; }
         try {
             const data = await stockService.sellStock(sellForm.symbol, parseInt(sellForm.quantity));
             setSellMsg(`✓ ${data.message} — ₹${data.totalEarned} credited`);
             setSellForm({ symbol: '', quantity: '' });
             fetchPortfolio();
-        } catch (err) {
-            setSellMsg(err.response?.data?.message || 'Sale failed!');
-        }
+        } catch (err) { setSellMsg(err.response?.data?.message || 'Sale failed.'); }
     };
 
     const totalInvested = portfolio.reduce((sum, h) => sum + parseFloat(h.invested), 0);
     const totalValue = portfolio.reduce((sum, h) => sum + parseFloat(h.currentValue), 0);
     const totalPnl = totalValue - totalInvested;
 
+    const tabs = [
+        { id: 'market', label: 'Market', badge: 'LIVE' },
+        { id: 'portfolio', label: 'Holdings', badge: `${portfolio.length}` },
+        { id: 'buy', label: 'Buy', badge: null },
+        { id: 'sell', label: 'Sell', badge: null },
+    ];
+
     if (loading) return (
-        <div style={styles.container}>
-            <div style={{ color: '#fff', textAlign: 'center', paddingTop: '100px' }}>Loading...</div>
+        <div style={{ minHeight: '100vh', background: 'var(--vc-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ color: 'var(--vc-muted)', fontFamily: 'var(--vc-mono)', fontSize: '12px' }}>Loading market data...</div>
         </div>
     );
 
     return (
-        <div style={styles.container}>
-            <div style={styles.header}>
-                <button style={styles.backBtn} onClick={onBack}>← Back</button>
-                <h2 style={styles.title}>📈 Portfolio Dashboard</h2>
-                <span style={styles.live}>● LIVE</span>
-            </div>
-
-            {portfolio.length > 0 && (
-                <div style={styles.statsRow}>
-                    <div style={styles.statCard}>
-                        <div style={styles.statLabel}>Total Invested</div>
-                        <div style={styles.statValue}>₹{totalInvested.toFixed(2)}</div>
-                    </div>
-                    <div style={styles.statCard}>
-                        <div style={styles.statLabel}>Current Value</div>
-                        <div style={styles.statValue}>₹{totalValue.toFixed(2)}</div>
-                    </div>
-                    <div style={styles.statCard}>
-                        <div style={styles.statLabel}>P&L</div>
-                        <div style={{ ...styles.statValue, color: totalPnl >= 0 ? '#4caf50' : '#ff6b6b' }}>
-                            {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toFixed(2)}
-                        </div>
-                    </div>
+        <div style={s.shell}>
+            {/* Topbar */}
+            <div style={s.topbar}>
+                <div style={s.logoMark} />
+                <span style={s.logoText}>Vault<span style={{ color: 'var(--vc-gold)' }}>Core</span></span>
+                <span style={s.topbarSection}>/ Portfolio</span>
+                <div style={s.statusPill}>
+                    <div style={s.pulse} />
+                    LIVE · 5s refresh
                 </div>
-            )}
-
-            <div style={styles.tabs}>
-                {['market', 'portfolio', 'buy', 'sell'].map(tab => (
-                    <button
-                        key={tab}
-                        style={activeTab === tab ? styles.tabActive : styles.tabInactive}
-                        onClick={() => setActiveTab(tab)}>
-                        {tab === 'market' ? '📊 Market' :
-                         tab === 'portfolio' ? '💼 Portfolio' :
-                         tab === 'buy' ? '🛒 Buy' : '💸 Sell'}
-                    </button>
-                ))}
+                <button style={s.backBtn} onClick={onBack}>← Dashboard</button>
             </div>
 
-            {/* Market Tab */}
-            {activeTab === 'market' && (
-                <div style={styles.content}>
-                    <div style={styles.chartBox}>
-                        <p style={styles.chartTitle}>Live Stock Prices (INR)</p>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={prices}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                                <XAxis dataKey="symbol" stroke="#888" fontSize={12} />
-                                <YAxis stroke="#888" fontSize={12} />
-                                <Tooltip
-                                    contentStyle={{ background: '#1a1a2e', border: '1px solid #333', color: '#fff' }}
-                                    formatter={(val) => [`₹${val}`, 'Price']}
-                                />
-                                <Bar dataKey="price" fill="#6c63ff" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <div style={styles.priceGrid}>
-                        {prices.map((stock) => (
-                            <div key={stock.symbol} style={styles.priceCard}>
-                                <div style={styles.symbol}>{stock.symbol}</div>
-                                <div style={styles.price}>₹{stock.price}</div>
-                                <div style={styles.latency}>{stock.latencyMs}ms</div>
+            <div style={s.main}>
+                <div style={s.pageHeader}>
+                    <div style={s.pageTitle}>Stock Portfolio</div>
+                    <div style={s.pageSub}>Mock API · 8 symbols · ±2% price fluctuation · Real-time updates</div>
+                </div>
+
+                {/* Metrics */}
+                {portfolio.length > 0 && (
+                    <div style={s.metrics}>
+                        {[
+                            { label: 'TOTAL INVESTED', value: `₹${totalInvested.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--vc-text)' },
+                            { label: 'CURRENT VALUE', value: `₹${totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--vc-gold)' },
+                            { label: 'P&L', value: `${totalPnl >= 0 ? '+' : ''}₹${totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: totalPnl >= 0 ? 'var(--vc-teal)' : 'var(--vc-red)' },
+                            { label: 'HOLDINGS', value: `${portfolio.length} stocks`, color: 'var(--vc-blue)' },
+                        ].map(m => (
+                            <div key={m.label} style={s.metricCard}>
+                                <div style={s.metricLabel}>{m.label}</div>
+                                <div style={{ ...s.metricVal, color: m.color }}>{m.value}</div>
                             </div>
                         ))}
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Portfolio Tab */}
-            {activeTab === 'portfolio' && (
-                <div style={styles.content}>
-                    {portfolio.length === 0 ? (
-                        <div style={styles.empty}>Koi holdings nahi — Buy tab se kharido!</div>
-                    ) : (
-                        <>
-                            <div style={styles.chartBox}>
-                                <p style={styles.chartTitle}>Portfolio Allocation</p>
-                                <ResponsiveContainer width="100%" height={250}>
-                                    <PieChart>
-                                        <Pie data={portfolio} dataKey="currentValue" nameKey="symbol"
-                                            cx="50%" cy="50%" outerRadius={80} label={({ symbol }) => symbol}>
-                                            {portfolio.map((_, i) => (
-                                                <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip formatter={(val) => [`₹${val}`, 'Value']}
-                                            contentStyle={{ background: '#1a1a2e', border: '1px solid #333', color: '#fff' }} />
-                                        <Legend />
-                                    </PieChart>
-                                </ResponsiveContainer>
+                {/* Tabs */}
+                <div style={s.tabRow}>
+                    {tabs.map(t => (
+                        <div key={t.id} style={{ ...s.tab, ...(activeTab === t.id ? s.tabActive : {}) }}
+                            onClick={() => setActiveTab(t.id)}>
+                            {t.label}
+                            {t.badge && <span style={{ ...s.tabBadge, background: activeTab === t.id ? 'rgba(201,168,76,0.2)' : 'var(--vc-surface2)', color: activeTab === t.id ? 'var(--vc-gold)' : 'var(--vc-muted)' }}>{t.badge}</span>}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Market Tab */}
+                {activeTab === 'market' && (
+                    <div style={s.content}>
+                        <div style={s.card}>
+                            <div style={s.cardHead}>
+                                <div style={s.cardTitle}>Live Prices — INR</div>
+                                <span style={s.badgeTeal}>MOCK API</span>
                             </div>
-                            <div style={styles.holdingsList}>
-                                {portfolio.map((h, i) => (
-                                    <div key={h.symbol} style={styles.holdingCard}>
-                                        <div style={{ ...styles.holdingDot, background: COLORS[i % COLORS.length] }} />
-                                        <div style={styles.holdingInfo}>
-                                            <div style={styles.holdingSymbol}>{h.symbol}</div>
-                                            <div style={styles.holdingDetail}>{h.quantity} shares @ ₹{h.avgCost}</div>
-                                        </div>
-                                        <div style={styles.holdingRight}>
-                                            <div style={styles.holdingValue}>₹{parseFloat(h.currentValue).toFixed(2)}</div>
-                                            <div style={{ fontSize: '12px', color: parseFloat(h.pnl) >= 0 ? '#4caf50' : '#ff6b6b' }}>
-                                                {parseFloat(h.pnl) >= 0 ? '+' : ''}₹{parseFloat(h.pnl).toFixed(2)}
+                            <ResponsiveContainer width="100%" height={240}>
+                                <BarChart data={prices} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                                    <XAxis dataKey="symbol" stroke="var(--vc-muted)" fontSize={10} tick={{ fontFamily: 'var(--vc-mono)' }} />
+                                    <YAxis stroke="var(--vc-muted)" fontSize={10} tick={{ fontFamily: 'var(--vc-mono)' }} />
+                                    <Tooltip contentStyle={{ background: 'var(--vc-surface2)', border: '1px solid var(--vc-border2)', color: 'var(--vc-text)', fontFamily: 'var(--vc-mono)', fontSize: '11px' }} formatter={(val) => [`₹${val}`, 'Price']} />
+                                    <Bar dataKey="price" fill="var(--vc-gold)" radius={[3, 3, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        <div style={s.priceGrid}>
+                            {prices.map((stock, i) => (
+                                <div key={stock.symbol} style={s.priceCard}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <div style={s.symbol}>{stock.symbol}</div>
+                                        <div style={{ ...s.latency, color: stock.latencyMs < 10 ? 'var(--vc-teal)' : 'var(--vc-gold)' }}>{stock.latencyMs}ms</div>
+                                    </div>
+                                    <div style={s.price}>₹{parseFloat(stock.price).toLocaleString('en-IN')}</div>
+                                    <div style={{ height: '3px', background: 'var(--vc-border)', borderRadius: '2px', marginTop: '8px' }}>
+                                        <div style={{ height: '100%', width: `${(i + 1) * 12}%`, background: COLORS[i % COLORS.length], borderRadius: '2px' }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Portfolio Tab */}
+                {activeTab === 'portfolio' && (
+                    <div style={s.content}>
+                        {portfolio.length === 0 ? (
+                            <div style={s.empty}>No holdings yet — use the Buy tab to get started.</div>
+                        ) : (
+                            <div style={s.twoCol}>
+                                <div style={s.card}>
+                                    <div style={s.cardHead}>
+                                        <div style={s.cardTitle}>Allocation</div>
+                                        <span style={s.badgeBlue}>PIE CHART</span>
+                                    </div>
+                                    <ResponsiveContainer width="100%" height={200}>
+                                        <PieChart>
+                                            <Pie data={portfolio} dataKey="currentValue" nameKey="symbol" cx="50%" cy="50%" outerRadius={70}>
+                                                {portfolio.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                                            </Pie>
+                                            <Tooltip contentStyle={{ background: 'var(--vc-surface2)', border: '1px solid var(--vc-border2)', color: 'var(--vc-text)', fontFamily: 'var(--vc-mono)', fontSize: '11px' }} formatter={(val) => [`₹${val}`, 'Value']} />
+                                            <Legend wrapperStyle={{ fontSize: '10px', fontFamily: 'var(--vc-mono)', color: 'var(--vc-muted)' }} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+
+                                <div style={s.card}>
+                                    <div style={s.cardHead}>
+                                        <div style={s.cardTitle}>Holdings</div>
+                                        <span style={s.badgeGold}>{portfolio.length} STOCKS</span>
+                                    </div>
+                                    {portfolio.map((h, i) => (
+                                        <div key={h.symbol} style={s.holdingRow}>
+                                            <div style={{ ...s.holdingDot, background: COLORS[i % COLORS.length] }} />
+                                            <div style={{ flex: 1 }}>
+                                                <div style={s.holdingSymbol}>{h.symbol}</div>
+                                                <div style={s.holdingDetail}>{h.quantity} shares · avg ₹{h.avgCost}</div>
+                                            </div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={s.holdingValue}>₹{parseFloat(h.currentValue).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                                                <div style={{ fontSize: '10px', fontFamily: 'var(--vc-mono)', color: parseFloat(h.pnl) >= 0 ? 'var(--vc-teal)' : 'var(--vc-red)' }}>
+                                                    {parseFloat(h.pnl) >= 0 ? '+' : ''}₹{parseFloat(h.pnl).toFixed(2)}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </>
-                    )}
-                </div>
-            )}
-
-            {/* Buy Tab */}
-            {activeTab === 'buy' && (
-                <div style={styles.content}>
-                    <div style={styles.buyForm}>
-                        <p style={styles.chartTitle}>Stock Kharido</p>
-                        <select style={styles.input} value={buyForm.symbol}
-                            onChange={e => setBuyForm({ ...buyForm, symbol: e.target.value })}>
-                            <option value="">Symbol select karo</option>
-                            {prices.map(s => (
-                                <option key={s.symbol} value={s.symbol}>{s.symbol} — ₹{s.price}</option>
-                            ))}
-                        </select>
-                        <input style={styles.input} type="number" placeholder="Quantity"
-                            value={buyForm.quantity}
-                            onChange={e => setBuyForm({ ...buyForm, quantity: e.target.value })} min="1" />
-                        {buyForm.symbol && buyForm.quantity && (
-                            <div style={styles.estimate}>
-                                Estimated: ₹{((prices.find(p => p.symbol === buyForm.symbol)?.price || 0) * parseInt(buyForm.quantity || 0)).toFixed(2)}
+                                    ))}
+                                </div>
                             </div>
                         )}
-                        {buyMsg && <p style={{ color: buyMsg.startsWith('✓') ? '#4caf50' : '#ff6b6b', fontSize: '13px' }}>{buyMsg}</p>}
-                        <button style={styles.buyBtn} onClick={handleBuy}>Buy Now</button>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Sell Tab */}
-            {activeTab === 'sell' && (
-                <div style={styles.content}>
-                    <div style={styles.buyForm}>
-                        <p style={styles.chartTitle}>Stock Becho</p>
-                        {portfolio.length === 0 ? (
-                            <div style={styles.empty}>Koi holdings nahi — pehle kharido!</div>
-                        ) : (
-                            <>
-                                <select style={styles.input} value={sellForm.symbol}
-                                    onChange={e => setSellForm({ ...sellForm, symbol: e.target.value })}>
-                                    <option value="">Symbol select karo</option>
-                                    {portfolio.map(h => (
-                                        <option key={h.symbol} value={h.symbol}>
-                                            {h.symbol} — {h.quantity} shares
-                                        </option>
-                                    ))}
-                                </select>
-                                <input style={styles.input} type="number" placeholder="Quantity"
-                                    value={sellForm.quantity}
-                                    onChange={e => setSellForm({ ...sellForm, quantity: e.target.value })} min="1" />
-                                {sellForm.symbol && sellForm.quantity && (
-                                    <div style={{ ...styles.estimate, color: '#4caf50' }}>
-                                        Estimated Earn: ₹{((prices.find(p => p.symbol === sellForm.symbol)?.price || 0) * parseInt(sellForm.quantity || 0)).toFixed(2)}
+                {/* Buy Tab */}
+                {activeTab === 'buy' && (
+                    <div style={s.content}>
+                        <div style={{ ...s.card, maxWidth: '420px' }}>
+                            <div style={s.cardHead}>
+                                <div style={s.cardTitle}>Buy Stock</div>
+                                <span style={s.badgeTeal}>MARKET ORDER</span>
+                            </div>
+                            <div style={s.fields}>
+                                <div style={s.field}>
+                                    <label style={s.label}>SYMBOL</label>
+                                    <select style={s.input} value={buyForm.symbol}
+                                        onChange={e => setBuyForm({ ...buyForm, symbol: e.target.value })}>
+                                        <option value="">Select symbol</option>
+                                        {prices.map(p => <option key={p.symbol} value={p.symbol}>{p.symbol} — ₹{p.price}</option>)}
+                                    </select>
+                                </div>
+                                <div style={s.field}>
+                                    <label style={s.label}>QUANTITY</label>
+                                    <input style={s.input} type="number" placeholder="0" min="1"
+                                        value={buyForm.quantity}
+                                        onChange={e => setBuyForm({ ...buyForm, quantity: e.target.value })} />
+                                </div>
+                                {buyForm.symbol && buyForm.quantity && (
+                                    <div style={s.estimateBox}>
+                                        <span style={s.label}>ESTIMATED COST</span>
+                                        <span style={{ color: 'var(--vc-gold)', fontFamily: 'var(--vc-mono)', fontSize: '16px' }}>
+                                            ₹{((prices.find(p => p.symbol === buyForm.symbol)?.price || 0) * parseInt(buyForm.quantity || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        </span>
                                     </div>
                                 )}
-                                {sellMsg && <p style={{ color: sellMsg.startsWith('✓') ? '#4caf50' : '#ff6b6b', fontSize: '13px' }}>{sellMsg}</p>}
-                                <button style={{ ...styles.buyBtn, background: '#ff6b6b' }} onClick={handleSell}>
-                                    Sell Now
-                                </button>
-                            </>
-                        )}
+                                {buyMsg && <div style={{ ...s.msgBox, color: buyMsg.startsWith('✓') ? 'var(--vc-teal)' : 'var(--vc-red)', borderColor: buyMsg.startsWith('✓') ? 'rgba(29,232,181,0.3)' : 'rgba(255,77,106,0.3)', background: buyMsg.startsWith('✓') ? 'rgba(29,232,181,0.08)' : 'rgba(255,77,106,0.08)' }}>{buyMsg}</div>}
+                                <button style={s.btn} onClick={handleBuy}>Execute Buy Order</button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+
+                {/* Sell Tab */}
+                {activeTab === 'sell' && (
+                    <div style={s.content}>
+                        <div style={{ ...s.card, maxWidth: '420px' }}>
+                            <div style={s.cardHead}>
+                                <div style={s.cardTitle}>Sell Stock</div>
+                                <span style={s.badgeRed}>MARKET ORDER</span>
+                            </div>
+                            {portfolio.length === 0 ? (
+                                <div style={s.empty}>No holdings to sell.</div>
+                            ) : (
+                                <div style={s.fields}>
+                                    <div style={s.field}>
+                                        <label style={s.label}>SYMBOL</label>
+                                        <select style={s.input} value={sellForm.symbol}
+                                            onChange={e => setSellForm({ ...sellForm, symbol: e.target.value })}>
+                                            <option value="">Select holding</option>
+                                            {portfolio.map(h => <option key={h.symbol} value={h.symbol}>{h.symbol} — {h.quantity} shares</option>)}
+                                        </select>
+                                    </div>
+                                    <div style={s.field}>
+                                        <label style={s.label}>QUANTITY</label>
+                                        <input style={s.input} type="number" placeholder="0" min="1"
+                                            value={sellForm.quantity}
+                                            onChange={e => setSellForm({ ...sellForm, quantity: e.target.value })} />
+                                    </div>
+                                    {sellForm.symbol && sellForm.quantity && (
+                                        <div style={s.estimateBox}>
+                                            <span style={s.label}>ESTIMATED RETURN</span>
+                                            <span style={{ color: 'var(--vc-teal)', fontFamily: 'var(--vc-mono)', fontSize: '16px' }}>
+                                                ₹{((prices.find(p => p.symbol === sellForm.symbol)?.price || 0) * parseInt(sellForm.quantity || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {sellMsg && <div style={{ ...s.msgBox, color: sellMsg.startsWith('✓') ? 'var(--vc-teal)' : 'var(--vc-red)', borderColor: sellMsg.startsWith('✓') ? 'rgba(29,232,181,0.3)' : 'rgba(255,77,106,0.3)', background: sellMsg.startsWith('✓') ? 'rgba(29,232,181,0.08)' : 'rgba(255,77,106,0.08)' }}>{sellMsg}</div>}
+                                    <button style={{ ...s.btn, background: 'var(--vc-red)', color: '#fff' }} onClick={handleSell}>Execute Sell Order</button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
 
-const styles = {
-    container: { minHeight: '100vh', background: '#0f0c29', color: '#fff', fontFamily: 'sans-serif' },
-    header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: 'rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.1)' },
-    backBtn: { background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '14px' },
-    title: { color: '#fff', fontSize: '20px', margin: 0 },
-    live: { color: '#4caf50', fontSize: '12px' },
-    statsRow: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', padding: '16px 24px' },
-    statCard: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', textAlign: 'center' },
-    statLabel: { color: '#888', fontSize: '12px', marginBottom: '8px' },
-    statValue: { fontSize: '20px', fontWeight: 'bold' },
-    tabs: { display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '0 24px' },
-    tabActive: { padding: '12px 20px', background: 'none', border: 'none', borderBottom: '2px solid #6c63ff', color: '#fff', cursor: 'pointer', fontSize: '14px' },
-    tabInactive: { padding: '12px 20px', background: 'none', border: 'none', borderBottom: '2px solid transparent', color: '#888', cursor: 'pointer', fontSize: '14px' },
-    content: { padding: '24px' },
-    chartBox: { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', marginBottom: '20px' },
-    chartTitle: { color: '#888', fontSize: '13px', marginBottom: '12px' },
-    priceGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' },
-    priceCard: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px', textAlign: 'center' },
-    symbol: { color: '#888', fontSize: '11px', marginBottom: '6px' },
-    price: { fontSize: '16px', fontWeight: 'bold', marginBottom: '4px' },
-    latency: { color: '#4caf50', fontSize: '10px' },
-    empty: { color: '#888', textAlign: 'center', padding: '40px' },
-    holdingsList: { display: 'flex', flexDirection: 'column', gap: '10px' },
-    holdingCard: { display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px' },
-    holdingDot: { width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0 },
-    holdingInfo: { flex: 1 },
-    holdingSymbol: { fontSize: '14px', fontWeight: 'bold' },
-    holdingDetail: { color: '#888', fontSize: '12px' },
-    holdingRight: { textAlign: 'right' },
-    holdingValue: { fontSize: '14px', fontWeight: 'bold' },
-    buyForm: { maxWidth: '400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '14px' },
-    input: { padding: '12px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.07)', color: '#fff', fontSize: '14px', outline: 'none' },
-    estimate: { color: '#6c63ff', fontSize: '14px', textAlign: 'center', fontWeight: 'bold' },
-    buyBtn: { padding: '12px', borderRadius: '8px', border: 'none', background: '#6c63ff', color: '#fff', fontSize: '15px', cursor: 'pointer', fontWeight: 'bold' }
+const s = {
+    shell: { minHeight: '100vh', background: 'var(--vc-bg)', fontFamily: 'var(--vc-sans)' },
+    topbar: { background: 'var(--vc-surface)', borderBottom: '1px solid var(--vc-border)', display: 'flex', alignItems: 'center', padding: '0 24px', gap: '10px', height: '52px' },
+    logoMark: { width: '24px', height: '24px', background: 'var(--vc-gold)', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', flexShrink: 0 },
+    logoText: { fontSize: '14px', fontWeight: '600', letterSpacing: '0.05em', color: 'var(--vc-text)' },
+    topbarSection: { fontSize: '12px', color: 'var(--vc-muted)', fontFamily: 'var(--vc-mono)' },
+    statusPill: { display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(29,232,181,0.08)', border: '1px solid rgba(29,232,181,0.2)', borderRadius: '20px', padding: '4px 10px', fontSize: '10px', color: 'var(--vc-teal)', fontFamily: 'var(--vc-mono)' },
+    pulse: { width: '6px', height: '6px', borderRadius: '50%', background: 'var(--vc-teal)' },
+    backBtn: { marginLeft: 'auto', background: 'none', border: '1px solid var(--vc-border)', color: 'var(--vc-muted)', cursor: 'pointer', fontSize: '11px', padding: '5px 12px', borderRadius: '4px' },
+    main: { padding: '24px' },
+    pageHeader: { marginBottom: '20px' },
+    pageTitle: { fontSize: '18px', fontWeight: '500', color: 'var(--vc-text)' },
+    pageSub: { fontSize: '11px', color: 'var(--vc-muted)', marginTop: '2px', fontFamily: 'var(--vc-mono)' },
+    metrics: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' },
+    metricCard: { background: 'var(--vc-surface)', border: '1px solid var(--vc-border)', borderRadius: '8px', padding: '14px' },
+    metricLabel: { fontSize: '9px', fontWeight: '500', color: 'var(--vc-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' },
+    metricVal: { fontSize: '18px', fontWeight: '500', fontFamily: 'var(--vc-mono)' },
+    tabRow: { display: 'flex', borderBottom: '1px solid var(--vc-border)', marginBottom: '20px' },
+    tab: { padding: '10px 16px', cursor: 'pointer', fontSize: '12px', color: 'var(--vc-muted)', borderBottom: '2px solid transparent', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.15s' },
+    tabActive: { color: 'var(--vc-gold)', borderBottom: '2px solid var(--vc-gold)' },
+    tabBadge: { fontSize: '9px', padding: '2px 6px', borderRadius: '3px', fontFamily: 'var(--vc-mono)' },
+    content: {},
+    card: { background: 'var(--vc-surface)', border: '1px solid var(--vc-border)', borderRadius: '8px', padding: '16px', marginBottom: '12px' },
+    cardHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', paddingBottom: '10px', borderBottom: '1px solid var(--vc-border)' },
+    cardTitle: { fontSize: '12px', fontWeight: '500', color: 'var(--vc-text)', letterSpacing: '0.04em' },
+    priceGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' },
+    priceCard: { background: 'var(--vc-surface)', border: '1px solid var(--vc-border)', borderRadius: '6px', padding: '12px' },
+    symbol: { fontSize: '10px', fontWeight: '500', color: 'var(--vc-muted)', fontFamily: 'var(--vc-mono)', letterSpacing: '0.08em' },
+    price: { fontSize: '16px', fontWeight: '500', color: 'var(--vc-text)', fontFamily: 'var(--vc-mono)' },
+    latency: { fontSize: '9px', fontFamily: 'var(--vc-mono)' },
+    twoCol: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
+    holdingRow: { display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' },
+    holdingDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
+    holdingSymbol: { fontSize: '12px', color: 'var(--vc-text)', fontWeight: '500', marginBottom: '2px' },
+    holdingDetail: { fontSize: '10px', color: 'var(--vc-muted)', fontFamily: 'var(--vc-mono)' },
+    holdingValue: { fontSize: '12px', color: 'var(--vc-text)', fontFamily: 'var(--vc-mono)', marginBottom: '2px' },
+    fields: { display: 'flex', flexDirection: 'column', gap: '16px' },
+    field: { display: 'flex', flexDirection: 'column', gap: '6px' },
+    label: { fontSize: '9px', fontWeight: '500', letterSpacing: '0.1em', color: 'var(--vc-muted)', fontFamily: 'var(--vc-mono)' },
+    input: { padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--vc-border)', background: 'var(--vc-surface2)', color: 'var(--vc-text)', fontSize: '13px', outline: 'none' },
+    estimateBox: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--vc-surface2)', borderRadius: '6px', border: '1px solid var(--vc-border)' },
+    msgBox: { padding: '10px 12px', borderRadius: '4px', border: '1px solid', fontSize: '11px', fontFamily: 'var(--vc-mono)' },
+    btn: { width: '100%', padding: '11px', borderRadius: '6px', border: 'none', background: 'var(--vc-gold)', color: '#1a0e00', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
+    empty: { color: 'var(--vc-muted)', textAlign: 'center', padding: '40px', fontFamily: 'var(--vc-mono)', fontSize: '12px' },
+    badgeGold: { fontSize: '9px', fontFamily: 'var(--vc-mono)', padding: '3px 8px', borderRadius: '4px', background: 'rgba(201,168,76,0.15)', color: 'var(--vc-gold)', border: '1px solid rgba(201,168,76,0.3)' },
+    badgeTeal: { fontSize: '9px', fontFamily: 'var(--vc-mono)', padding: '3px 8px', borderRadius: '4px', background: 'rgba(29,232,181,0.1)', color: 'var(--vc-teal)', border: '1px solid rgba(29,232,181,0.25)' },
+    badgeBlue: { fontSize: '9px', fontFamily: 'var(--vc-mono)', padding: '3px 8px', borderRadius: '4px', background: 'rgba(77,159,255,0.1)', color: 'var(--vc-blue)', border: '1px solid rgba(77,159,255,0.25)' },
+    badgeRed: { fontSize: '9px', fontFamily: 'var(--vc-mono)', padding: '3px 8px', borderRadius: '4px', background: 'rgba(255,77,106,0.1)', color: 'var(--vc-red)', border: '1px solid rgba(255,77,106,0.25)' },
 };
