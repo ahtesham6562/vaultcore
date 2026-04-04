@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface LedgerEntryRepository extends JpaRepository<LedgerEntry, UUID> {
     List<LedgerEntry> findByAccountIdOrderByCreatedAtDesc(UUID accountId);
     List<LedgerEntry> findByTxRef(String txRef);
+    List<LedgerEntry> findByAccount_EmailOrderByCreatedAtDesc(String email);
 }
