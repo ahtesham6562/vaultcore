@@ -4,6 +4,16 @@ import stockService from '../services/stockService';
 
 const COLORS = ['#c9a84c', '#1de8b5', '#ff4d6a', '#4d9fff', '#e8c87a', '#ab47bc', '#26a69a', '#ef5350'];
 
+const useIsMobile = () => {
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    useEffect(() => {
+        const handler = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handler);
+        return () => window.removeEventListener('resize', handler);
+    }, []);
+    return isMobile;
+};
+
 export default function PortfolioPage({ onBack }) {
     const [prices, setPrices] = useState([]);
     const [portfolio, setPortfolio] = useState([]);
@@ -13,6 +23,7 @@ export default function PortfolioPage({ onBack }) {
     const [buyMsg, setBuyMsg] = useState('');
     const [sellMsg, setSellMsg] = useState('');
     const [activeTab, setActiveTab] = useState('market');
+    const isMobile = useIsMobile();
 
     useEffect(() => {
         fetchData();
@@ -76,32 +87,32 @@ export default function PortfolioPage({ onBack }) {
             <div style={s.topbar}>
                 <div style={s.logoMark} />
                 <span style={s.logoText}>Vault<span style={{ color: 'var(--vc-gold)' }}>Core</span></span>
-                <span style={s.topbarSection}>/ Portfolio</span>
+                {!isMobile && <span style={s.topbarSection}>/ Portfolio</span>}
                 <div style={s.statusPill}>
                     <div style={s.pulse} />
-                    LIVE · 5s refresh
+                    {!isMobile && 'LIVE · 5s'}
                 </div>
-                <button style={s.backBtn} onClick={onBack}>← Dashboard</button>
+                <button style={s.backBtn} onClick={onBack}>← {isMobile ? '' : 'Dashboard'}</button>
             </div>
 
-            <div style={s.main}>
+            <div style={{ ...s.main, padding: isMobile ? '16px' : '24px' }}>
                 <div style={s.pageHeader}>
                     <div style={s.pageTitle}>Stock Portfolio</div>
-                    <div style={s.pageSub}>Mock API · 8 symbols · ±2% price fluctuation · Real-time updates</div>
+                    <div style={s.pageSub}>Mock API · 8 symbols · ±2% fluctuation</div>
                 </div>
 
                 {/* Metrics */}
                 {portfolio.length > 0 && (
-                    <div style={s.metrics}>
+                    <div style={{ ...s.metrics, gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)' }}>
                         {[
-                            { label: 'TOTAL INVESTED', value: `₹${totalInvested.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--vc-text)' },
-                            { label: 'CURRENT VALUE', value: `₹${totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--vc-gold)' },
+                            { label: 'INVESTED', value: `₹${totalInvested.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--vc-text)' },
+                            { label: 'CURRENT', value: `₹${totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--vc-gold)' },
                             { label: 'P&L', value: `${totalPnl >= 0 ? '+' : ''}₹${totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: totalPnl >= 0 ? 'var(--vc-teal)' : 'var(--vc-red)' },
                             { label: 'HOLDINGS', value: `${portfolio.length} stocks`, color: 'var(--vc-blue)' },
                         ].map(m => (
                             <div key={m.label} style={s.metricCard}>
                                 <div style={s.metricLabel}>{m.label}</div>
-                                <div style={{ ...s.metricVal, color: m.color }}>{m.value}</div>
+                                <div style={{ ...s.metricVal, color: m.color, fontSize: isMobile ? '14px' : '18px' }}>{m.value}</div>
                             </div>
                         ))}
                     </div>
@@ -120,24 +131,24 @@ export default function PortfolioPage({ onBack }) {
 
                 {/* Market Tab */}
                 {activeTab === 'market' && (
-                    <div style={s.content}>
+                    <div>
                         <div style={s.card}>
                             <div style={s.cardHead}>
                                 <div style={s.cardTitle}>Live Prices — INR</div>
                                 <span style={s.badgeTeal}>MOCK API</span>
                             </div>
-                            <ResponsiveContainer width="100%" height={240}>
-                                <BarChart data={prices} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+                            <ResponsiveContainer width="100%" height={isMobile ? 180 : 240}>
+                                <BarChart data={prices} margin={{ top: 4, right: 4, bottom: 4, left: isMobile ? -20 : 4 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                                    <XAxis dataKey="symbol" stroke="var(--vc-muted)" fontSize={10} tick={{ fontFamily: 'var(--vc-mono)' }} />
-                                    <YAxis stroke="var(--vc-muted)" fontSize={10} tick={{ fontFamily: 'var(--vc-mono)' }} />
+                                    <XAxis dataKey="symbol" stroke="var(--vc-muted)" fontSize={isMobile ? 8 : 10} tick={{ fontFamily: 'var(--vc-mono)' }} />
+                                    <YAxis stroke="var(--vc-muted)" fontSize={isMobile ? 8 : 10} tick={{ fontFamily: 'var(--vc-mono)' }} />
                                     <Tooltip contentStyle={{ background: 'var(--vc-surface2)', border: '1px solid var(--vc-border2)', color: 'var(--vc-text)', fontFamily: 'var(--vc-mono)', fontSize: '11px' }} formatter={(val) => [`₹${val}`, 'Price']} />
                                     <Bar dataKey="price" fill="var(--vc-gold)" radius={[3, 3, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
 
-                        <div style={s.priceGrid}>
+                        <div style={{ ...s.priceGrid, gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(160px, 1fr))' }}>
                             {prices.map((stock, i) => (
                                 <div key={stock.symbol} style={s.priceCard}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -156,11 +167,11 @@ export default function PortfolioPage({ onBack }) {
 
                 {/* Portfolio Tab */}
                 {activeTab === 'portfolio' && (
-                    <div style={s.content}>
+                    <div>
                         {portfolio.length === 0 ? (
                             <div style={s.empty}>No holdings yet — use the Buy tab to get started.</div>
                         ) : (
-                            <div style={s.twoCol}>
+                            <div style={{ ...s.twoCol, gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
                                 <div style={s.card}>
                                     <div style={s.cardHead}>
                                         <div style={s.cardTitle}>Allocation</div>
@@ -205,81 +216,77 @@ export default function PortfolioPage({ onBack }) {
 
                 {/* Buy Tab */}
                 {activeTab === 'buy' && (
-                    <div style={s.content}>
-                        <div style={{ ...s.card, maxWidth: '420px' }}>
-                            <div style={s.cardHead}>
-                                <div style={s.cardTitle}>Buy Stock</div>
-                                <span style={s.badgeTeal}>MARKET ORDER</span>
+                    <div style={s.card}>
+                        <div style={s.cardHead}>
+                            <div style={s.cardTitle}>Buy Stock</div>
+                            <span style={s.badgeTeal}>MARKET ORDER</span>
+                        </div>
+                        <div style={s.fields}>
+                            <div style={s.field}>
+                                <label style={s.label}>SYMBOL</label>
+                                <select style={s.input} value={buyForm.symbol}
+                                    onChange={e => setBuyForm({ ...buyForm, symbol: e.target.value })}>
+                                    <option value="">Select symbol</option>
+                                    {prices.map(p => <option key={p.symbol} value={p.symbol}>{p.symbol} — ₹{p.price}</option>)}
+                                </select>
                             </div>
-                            <div style={s.fields}>
-                                <div style={s.field}>
-                                    <label style={s.label}>SYMBOL</label>
-                                    <select style={s.input} value={buyForm.symbol}
-                                        onChange={e => setBuyForm({ ...buyForm, symbol: e.target.value })}>
-                                        <option value="">Select symbol</option>
-                                        {prices.map(p => <option key={p.symbol} value={p.symbol}>{p.symbol} — ₹{p.price}</option>)}
-                                    </select>
-                                </div>
-                                <div style={s.field}>
-                                    <label style={s.label}>QUANTITY</label>
-                                    <input style={s.input} type="number" placeholder="0" min="1"
-                                        value={buyForm.quantity}
-                                        onChange={e => setBuyForm({ ...buyForm, quantity: e.target.value })} />
-                                </div>
-                                {buyForm.symbol && buyForm.quantity && (
-                                    <div style={s.estimateBox}>
-                                        <span style={s.label}>ESTIMATED COST</span>
-                                        <span style={{ color: 'var(--vc-gold)', fontFamily: 'var(--vc-mono)', fontSize: '16px' }}>
-                                            ₹{((prices.find(p => p.symbol === buyForm.symbol)?.price || 0) * parseInt(buyForm.quantity || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                        </span>
-                                    </div>
-                                )}
-                                {buyMsg && <div style={{ ...s.msgBox, color: buyMsg.startsWith('✓') ? 'var(--vc-teal)' : 'var(--vc-red)', borderColor: buyMsg.startsWith('✓') ? 'rgba(29,232,181,0.3)' : 'rgba(255,77,106,0.3)', background: buyMsg.startsWith('✓') ? 'rgba(29,232,181,0.08)' : 'rgba(255,77,106,0.08)' }}>{buyMsg}</div>}
-                                <button style={s.btn} onClick={handleBuy}>Execute Buy Order</button>
+                            <div style={s.field}>
+                                <label style={s.label}>QUANTITY</label>
+                                <input style={s.input} type="number" placeholder="0" min="1"
+                                    value={buyForm.quantity}
+                                    onChange={e => setBuyForm({ ...buyForm, quantity: e.target.value })} />
                             </div>
+                            {buyForm.symbol && buyForm.quantity && (
+                                <div style={s.estimateBox}>
+                                    <span style={s.label}>ESTIMATED COST</span>
+                                    <span style={{ color: 'var(--vc-gold)', fontFamily: 'var(--vc-mono)', fontSize: '16px' }}>
+                                        ₹{((prices.find(p => p.symbol === buyForm.symbol)?.price || 0) * parseInt(buyForm.quantity || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            )}
+                            {buyMsg && <div style={{ ...s.msgBox, color: buyMsg.startsWith('✓') ? 'var(--vc-teal)' : 'var(--vc-red)', borderColor: buyMsg.startsWith('✓') ? 'rgba(29,232,181,0.3)' : 'rgba(255,77,106,0.3)', background: buyMsg.startsWith('✓') ? 'rgba(29,232,181,0.08)' : 'rgba(255,77,106,0.08)' }}>{buyMsg}</div>}
+                            <button style={s.btn} onClick={handleBuy}>Execute Buy Order</button>
                         </div>
                     </div>
                 )}
 
                 {/* Sell Tab */}
                 {activeTab === 'sell' && (
-                    <div style={s.content}>
-                        <div style={{ ...s.card, maxWidth: '420px' }}>
-                            <div style={s.cardHead}>
-                                <div style={s.cardTitle}>Sell Stock</div>
-                                <span style={s.badgeRed}>MARKET ORDER</span>
-                            </div>
-                            {portfolio.length === 0 ? (
-                                <div style={s.empty}>No holdings to sell.</div>
-                            ) : (
-                                <div style={s.fields}>
-                                    <div style={s.field}>
-                                        <label style={s.label}>SYMBOL</label>
-                                        <select style={s.input} value={sellForm.symbol}
-                                            onChange={e => setSellForm({ ...sellForm, symbol: e.target.value })}>
-                                            <option value="">Select holding</option>
-                                            {portfolio.map(h => <option key={h.symbol} value={h.symbol}>{h.symbol} — {h.quantity} shares</option>)}
-                                        </select>
-                                    </div>
-                                    <div style={s.field}>
-                                        <label style={s.label}>QUANTITY</label>
-                                        <input style={s.input} type="number" placeholder="0" min="1"
-                                            value={sellForm.quantity}
-                                            onChange={e => setSellForm({ ...sellForm, quantity: e.target.value })} />
-                                    </div>
-                                    {sellForm.symbol && sellForm.quantity && (
-                                        <div style={s.estimateBox}>
-                                            <span style={s.label}>ESTIMATED RETURN</span>
-                                            <span style={{ color: 'var(--vc-teal)', fontFamily: 'var(--vc-mono)', fontSize: '16px' }}>
-                                                ₹{((prices.find(p => p.symbol === sellForm.symbol)?.price || 0) * parseInt(sellForm.quantity || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {sellMsg && <div style={{ ...s.msgBox, color: sellMsg.startsWith('✓') ? 'var(--vc-teal)' : 'var(--vc-red)', borderColor: sellMsg.startsWith('✓') ? 'rgba(29,232,181,0.3)' : 'rgba(255,77,106,0.3)', background: sellMsg.startsWith('✓') ? 'rgba(29,232,181,0.08)' : 'rgba(255,77,106,0.08)' }}>{sellMsg}</div>}
-                                    <button style={{ ...s.btn, background: 'var(--vc-red)', color: '#fff' }} onClick={handleSell}>Execute Sell Order</button>
-                                </div>
-                            )}
+                    <div style={s.card}>
+                        <div style={s.cardHead}>
+                            <div style={s.cardTitle}>Sell Stock</div>
+                            <span style={s.badgeRed}>MARKET ORDER</span>
                         </div>
+                        {portfolio.length === 0 ? (
+                            <div style={s.empty}>No holdings to sell.</div>
+                        ) : (
+                            <div style={s.fields}>
+                                <div style={s.field}>
+                                    <label style={s.label}>SYMBOL</label>
+                                    <select style={s.input} value={sellForm.symbol}
+                                        onChange={e => setSellForm({ ...sellForm, symbol: e.target.value })}>
+                                        <option value="">Select holding</option>
+                                        {portfolio.map(h => <option key={h.symbol} value={h.symbol}>{h.symbol} — {h.quantity} shares</option>)}
+                                    </select>
+                                </div>
+                                <div style={s.field}>
+                                    <label style={s.label}>QUANTITY</label>
+                                    <input style={s.input} type="number" placeholder="0" min="1"
+                                        value={sellForm.quantity}
+                                        onChange={e => setSellForm({ ...sellForm, quantity: e.target.value })} />
+                                </div>
+                                {sellForm.symbol && sellForm.quantity && (
+                                    <div style={s.estimateBox}>
+                                        <span style={s.label}>ESTIMATED RETURN</span>
+                                        <span style={{ color: 'var(--vc-teal)', fontFamily: 'var(--vc-mono)', fontSize: '16px' }}>
+                                            ₹{((prices.find(p => p.symbol === sellForm.symbol)?.price || 0) * parseInt(sellForm.quantity || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                )}
+                                {sellMsg && <div style={{ ...s.msgBox, color: sellMsg.startsWith('✓') ? 'var(--vc-teal)' : 'var(--vc-red)', borderColor: sellMsg.startsWith('✓') ? 'rgba(29,232,181,0.3)' : 'rgba(255,77,106,0.3)', background: sellMsg.startsWith('✓') ? 'rgba(29,232,181,0.08)' : 'rgba(255,77,106,0.08)' }}>{sellMsg}</div>}
+                                <button style={{ ...s.btn, background: 'var(--vc-red)', color: '#fff' }} onClick={handleSell}>Execute Sell Order</button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -289,35 +296,34 @@ export default function PortfolioPage({ onBack }) {
 
 const s = {
     shell: { minHeight: '100vh', background: 'var(--vc-bg)', fontFamily: 'var(--vc-sans)' },
-    topbar: { background: 'var(--vc-surface)', borderBottom: '1px solid var(--vc-border)', display: 'flex', alignItems: 'center', padding: '0 24px', gap: '10px', height: '52px' },
+    topbar: { background: 'var(--vc-surface)', borderBottom: '1px solid var(--vc-border)', display: 'flex', alignItems: 'center', padding: '0 16px', gap: '10px', height: '52px', position: 'sticky', top: 0, zIndex: 10 },
     logoMark: { width: '24px', height: '24px', background: 'var(--vc-gold)', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', flexShrink: 0 },
     logoText: { fontSize: '14px', fontWeight: '600', letterSpacing: '0.05em', color: 'var(--vc-text)' },
     topbarSection: { fontSize: '12px', color: 'var(--vc-muted)', fontFamily: 'var(--vc-mono)' },
     statusPill: { display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(29,232,181,0.08)', border: '1px solid rgba(29,232,181,0.2)', borderRadius: '20px', padding: '4px 10px', fontSize: '10px', color: 'var(--vc-teal)', fontFamily: 'var(--vc-mono)' },
     pulse: { width: '6px', height: '6px', borderRadius: '50%', background: 'var(--vc-teal)' },
     backBtn: { marginLeft: 'auto', background: 'none', border: '1px solid var(--vc-border)', color: 'var(--vc-muted)', cursor: 'pointer', fontSize: '11px', padding: '5px 12px', borderRadius: '4px' },
-    main: { padding: '24px' },
+    main: {},
     pageHeader: { marginBottom: '20px' },
     pageTitle: { fontSize: '18px', fontWeight: '500', color: 'var(--vc-text)' },
     pageSub: { fontSize: '11px', color: 'var(--vc-muted)', marginTop: '2px', fontFamily: 'var(--vc-mono)' },
-    metrics: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' },
+    metrics: { display: 'grid', gap: '12px', marginBottom: '20px' },
     metricCard: { background: 'var(--vc-surface)', border: '1px solid var(--vc-border)', borderRadius: '8px', padding: '14px' },
     metricLabel: { fontSize: '9px', fontWeight: '500', color: 'var(--vc-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px' },
-    metricVal: { fontSize: '18px', fontWeight: '500', fontFamily: 'var(--vc-mono)' },
-    tabRow: { display: 'flex', borderBottom: '1px solid var(--vc-border)', marginBottom: '20px' },
-    tab: { padding: '10px 16px', cursor: 'pointer', fontSize: '12px', color: 'var(--vc-muted)', borderBottom: '2px solid transparent', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.15s' },
+    metricVal: { fontWeight: '500', fontFamily: 'var(--vc-mono)' },
+    tabRow: { display: 'flex', borderBottom: '1px solid var(--vc-border)', marginBottom: '16px', overflowX: 'auto' },
+    tab: { padding: '10px 14px', cursor: 'pointer', fontSize: '12px', color: 'var(--vc-muted)', borderBottom: '2px solid transparent', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' },
     tabActive: { color: 'var(--vc-gold)', borderBottom: '2px solid var(--vc-gold)' },
     tabBadge: { fontSize: '9px', padding: '2px 6px', borderRadius: '3px', fontFamily: 'var(--vc-mono)' },
-    content: {},
     card: { background: 'var(--vc-surface)', border: '1px solid var(--vc-border)', borderRadius: '8px', padding: '16px', marginBottom: '12px' },
     cardHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', paddingBottom: '10px', borderBottom: '1px solid var(--vc-border)' },
     cardTitle: { fontSize: '12px', fontWeight: '500', color: 'var(--vc-text)', letterSpacing: '0.04em' },
-    priceGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' },
+    priceGrid: { display: 'grid', gap: '10px', marginTop: '12px' },
     priceCard: { background: 'var(--vc-surface)', border: '1px solid var(--vc-border)', borderRadius: '6px', padding: '12px' },
     symbol: { fontSize: '10px', fontWeight: '500', color: 'var(--vc-muted)', fontFamily: 'var(--vc-mono)', letterSpacing: '0.08em' },
     price: { fontSize: '16px', fontWeight: '500', color: 'var(--vc-text)', fontFamily: 'var(--vc-mono)' },
     latency: { fontSize: '9px', fontFamily: 'var(--vc-mono)' },
-    twoCol: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
+    twoCol: { display: 'grid', gap: '12px' },
     holdingRow: { display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' },
     holdingDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
     holdingSymbol: { fontSize: '12px', color: 'var(--vc-text)', fontWeight: '500', marginBottom: '2px' },
@@ -326,7 +332,7 @@ const s = {
     fields: { display: 'flex', flexDirection: 'column', gap: '16px' },
     field: { display: 'flex', flexDirection: 'column', gap: '6px' },
     label: { fontSize: '9px', fontWeight: '500', letterSpacing: '0.1em', color: 'var(--vc-muted)', fontFamily: 'var(--vc-mono)' },
-    input: { padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--vc-border)', background: 'var(--vc-surface2)', color: 'var(--vc-text)', fontSize: '13px', outline: 'none' },
+    input: { padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--vc-border)', background: 'var(--vc-surface2)', color: 'var(--vc-text)', fontSize: '13px', outline: 'none', width: '100%' },
     estimateBox: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--vc-surface2)', borderRadius: '6px', border: '1px solid var(--vc-border)' },
     msgBox: { padding: '10px 12px', borderRadius: '4px', border: '1px solid', fontSize: '11px', fontFamily: 'var(--vc-mono)' },
     btn: { width: '100%', padding: '11px', borderRadius: '6px', border: 'none', background: 'var(--vc-gold)', color: '#1a0e00', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },

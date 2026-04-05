@@ -33,3 +33,16 @@ input, select, button, textarea {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--vc-bg); }
 ::-webkit-scrollbar-thumb { background: var(--vc-border2); border-radius: 2px; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .vc-hide-mobile { display: none !important; }
+}

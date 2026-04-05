@@ -29,25 +29,35 @@ export default function LoginPage({ onLogin }) {
         }
     };
 
+    const isMobile = window.innerWidth <= 768;
+
     return (
         <div style={s.container}>
-            {/* Left Panel */}
-            <div style={s.left}>
-                <div style={s.brand}>
-                    <div style={s.logoMark} />
-                    <span style={s.logoText}>Vault<span style={{ color: 'var(--vc-gold)' }}>Core</span></span>
+            {/* Left Panel - hide on mobile */}
+            {!isMobile && (
+                <div style={s.left}>
+                    <div style={s.brand}>
+                        <div style={s.logoMark} />
+                        <span style={s.logoText}>Vault<span style={{ color: 'var(--vc-gold)' }}>Core</span></span>
+                    </div>
+                    <div style={s.heroTitle}>Neo-Banking<br />Infrastructure</div>
+                    <div style={s.heroSub}>Double-entry ledger · JWT auth<br />Real-time stocks · Fraud detection</div>
+                    <div style={s.pills}>
+                        {['SERIALIZABLE TX', 'VIRTUAL THREADS', 'ASPECTJ AOP', 'OWASP CLEAR'].map(p => (
+                            <div key={p} style={s.pill}>{p}</div>
+                        ))}
+                    </div>
                 </div>
-                <div style={s.heroTitle}>Neo-Banking<br />Infrastructure</div>
-                <div style={s.heroSub}>Double-entry ledger · JWT auth<br />Real-time stocks · Fraud detection</div>
-                <div style={s.pills}>
-                    {['SERIALIZABLE TX', 'VIRTUAL THREADS', 'ASPECTJ AOP', 'OWASP CLEAR'].map(p => (
-                        <div key={p} style={s.pill}>{p}</div>
-                    ))}
-                </div>
-            </div>
+            )}
 
             {/* Right Panel */}
-            <div style={s.right}>
+            <div style={{ ...s.right, width: isMobile ? '100%' : '420px', padding: isMobile ? '24px' : '40px' }}>
+                {isMobile && (
+                    <div style={{ ...s.brand, marginBottom: '32px' }}>
+                        <div style={s.logoMark} />
+                        <span style={s.logoText}>Vault<span style={{ color: 'var(--vc-gold)' }}>Core</span></span>
+                    </div>
+                )}
                 <div style={s.card}>
                     <div style={s.cardTitle}>{isRegister ? 'Create Account' : 'Sign In'}</div>
                     <div style={s.cardSub}>{isRegister ? 'Join VaultCore platform' : 'Welcome back'}</div>
@@ -86,18 +96,11 @@ export default function LoginPage({ onLogin }) {
                                     onChange={handleChange} />
                             </div>
                         )}
-
                         {error && (
-                            <div style={{
-                                ...s.errorBox,
-                                color: error.startsWith('✓') ? 'var(--vc-teal)' : 'var(--vc-red)',
-                                borderColor: error.startsWith('✓') ? 'rgba(29,232,181,0.3)' : 'rgba(255,77,106,0.3)',
-                                background: error.startsWith('✓') ? 'rgba(29,232,181,0.08)' : 'rgba(255,77,106,0.08)'
-                            }}>
+                            <div style={{ ...s.errorBox, color: error.startsWith('✓') ? 'var(--vc-teal)' : 'var(--vc-red)', borderColor: error.startsWith('✓') ? 'rgba(29,232,181,0.3)' : 'rgba(255,77,106,0.3)', background: error.startsWith('✓') ? 'rgba(29,232,181,0.08)' : 'rgba(255,77,106,0.08)' }}>
                                 {error}
                             </div>
                         )}
-
                         <button style={s.btn} type="submit" disabled={loading}>
                             {loading ? 'Authenticating...' : isRegister ? 'Create Account' : 'Sign In →'}
                         </button>
@@ -118,7 +121,7 @@ const s = {
     heroSub: { fontSize: '13px', color: 'var(--vc-muted)', lineHeight: '1.8', fontFamily: 'var(--vc-mono)', marginBottom: '40px' },
     pills: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
     pill: { padding: '4px 10px', borderRadius: '4px', fontSize: '10px', fontFamily: 'var(--vc-mono)', letterSpacing: '0.06em', background: 'rgba(201,168,76,0.1)', color: 'var(--vc-gold)', border: '1px solid rgba(201,168,76,0.25)' },
-    right: { width: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' },
+    right: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
     card: { width: '100%' },
     cardTitle: { fontSize: '20px', fontWeight: '500', color: 'var(--vc-text)', marginBottom: '4px' },
     cardSub: { fontSize: '12px', color: 'var(--vc-muted)', fontFamily: 'var(--vc-mono)', marginBottom: '28px' },

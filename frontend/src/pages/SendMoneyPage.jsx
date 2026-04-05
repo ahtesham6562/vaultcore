@@ -1,5 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import transferService from '../services/transferService';
+
+const useIsMobile = () => {
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    useEffect(() => {
+        const handler = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handler);
+        return () => window.removeEventListener('resize', handler);
+    }, []);
+    return isMobile;
+};
 
 export default function SendMoneyPage({ onBack }) {
     const [step, setStep] = useState(1);
@@ -7,6 +17,7 @@ export default function SendMoneyPage({ onBack }) {
     const [result, setResult] = useState(null);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const isMobile = useIsMobile();
 
     const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -32,13 +43,14 @@ export default function SendMoneyPage({ onBack }) {
             <div style={s.topbar}>
                 <div style={s.logoMark} />
                 <span style={s.logoText}>Vault<span style={{ color: 'var(--vc-gold)' }}>Core</span></span>
-                <button style={s.backBtn} onClick={onBack}>← Back to Dashboard</button>
+                {!isMobile && <span style={s.topbarSection}>/ Transfer</span>}
+                <button style={s.backBtn} onClick={onBack}>← {isMobile ? '' : 'Dashboard'}</button>
             </div>
 
-            <div style={s.main}>
+            <div style={{ ...s.main, padding: isMobile ? '16px' : '24px' }}>
                 <div style={s.pageHeader}>
                     <div style={s.pageTitle}>Transfer Funds</div>
-                    <div style={s.pageSub}>Serializable isolation · Double-entry ledger · Fraud detection active</div>
+                    <div style={s.pageSub}>Serializable isolation · Double-entry ledger · Fraud detection</div>
                 </div>
 
                 {/* Step Indicator */}
@@ -48,13 +60,13 @@ export default function SendMoneyPage({ onBack }) {
                             <div style={{ ...s.stepDot, background: step > i + 1 ? 'var(--vc-teal)' : step === i + 1 ? 'var(--vc-gold)' : 'var(--vc-border2)', color: step >= i + 1 ? '#1a0e00' : 'var(--vc-muted)' }}>
                                 {step > i + 1 ? '✓' : i + 1}
                             </div>
-                            <div style={{ ...s.stepLabel, color: step === i + 1 ? 'var(--vc-text)' : 'var(--vc-muted)' }}>{label}</div>
+                            {!isMobile && <div style={{ ...s.stepLabel, color: step === i + 1 ? 'var(--vc-text)' : 'var(--vc-muted)' }}>{label}</div>}
                             {i < 2 && <div style={{ ...s.stepLine, background: step > i + 1 ? 'var(--vc-teal)' : 'var(--vc-border)' }} />}
                         </div>
                     ))}
                 </div>
 
-                <div style={s.formWrap}>
+                <div style={{ maxWidth: isMobile ? '100%' : '600px', margin: '0 auto' }}>
                     {/* Step 1 */}
                     {step === 1 && (
                         <div style={s.card}>
@@ -75,7 +87,7 @@ export default function SendMoneyPage({ onBack }) {
                                         placeholder="0.00" value={form.amount}
                                         onChange={handleChange} min="0.01" />
                                     {form.amount && parseFloat(form.amount) > 50000 && (
-                                        <div style={s.warnBox}>⚠ Amount exceeds ₹50,000 — 2FA verification will be triggered</div>
+                                        <div style={s.warnBox}>⚠ Amount exceeds ₹50,000 — 2FA will be triggered</div>
                                     )}
                                 </div>
                                 <div style={s.field}>
@@ -102,7 +114,7 @@ export default function SendMoneyPage({ onBack }) {
                                     ['TO ACCOUNT', form.toAccountNo],
                                     ['AMOUNT', `₹${parseFloat(form.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`],
                                     ['DESCRIPTION', form.description || '—'],
-                                    ['ISOLATION LEVEL', 'SERIALIZABLE'],
+                                    ['ISOLATION', 'SERIALIZABLE'],
                                     ['FRAUD CHECK', parseFloat(form.amount) > 50000 ? '2FA REQUIRED' : 'PASS'],
                                 ].map(([k, v]) => (
                                     <div key={k} style={s.confirmRow}>
@@ -130,7 +142,6 @@ export default function SendMoneyPage({ onBack }) {
                                     {result.fraudFlagged ? 'PENDING 2FA' : 'COMMITTED'}
                                 </span>
                             </div>
-
                             {result.fraudFlagged ? (
                                 <div style={s.fraudAlert}>
                                     <div style={s.fraudAlertHead}>
@@ -138,7 +149,7 @@ export default function SendMoneyPage({ onBack }) {
                                         <div style={s.fraudTitle}>ALERT — Transaction held for verification</div>
                                     </div>
                                     <div style={s.fraudBody}>
-                                        Amount ₹{result.amount} exceeds fraud threshold ₹50,000 · 2FA verification required · Transaction ref: {result.txRef}
+                                        Amount ₹{result.amount} exceeds fraud threshold ₹50,000 · 2FA required · Ref: {result.txRef}
                                     </div>
                                 </div>
                             ) : (
@@ -147,10 +158,9 @@ export default function SendMoneyPage({ onBack }) {
                                     <div style={s.successText}>Transaction committed to ledger</div>
                                 </div>
                             )}
-
                             <div style={s.confirmGrid}>
                                 {[
-                                    ['TX REFERENCE', result.txRef],
+                                    ['TX REF', result.txRef],
                                     ['AMOUNT', `₹${result.amount}`],
                                     ['FROM', result.fromAccount],
                                     ['TO', result.toAccount],
@@ -173,33 +183,33 @@ export default function SendMoneyPage({ onBack }) {
 
 const s = {
     shell: { minHeight: '100vh', background: 'var(--vc-bg)', fontFamily: 'var(--vc-sans)' },
-    topbar: { background: 'var(--vc-surface)', borderBottom: '1px solid var(--vc-border)', display: 'flex', alignItems: 'center', padding: '0 24px', gap: '10px', height: '52px' },
+    topbar: { background: 'var(--vc-surface)', borderBottom: '1px solid var(--vc-border)', display: 'flex', alignItems: 'center', padding: '0 16px', gap: '10px', height: '52px', position: 'sticky', top: 0, zIndex: 10 },
     logoMark: { width: '24px', height: '24px', background: 'var(--vc-gold)', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', flexShrink: 0 },
     logoText: { fontSize: '14px', fontWeight: '600', letterSpacing: '0.05em', color: 'var(--vc-text)' },
+    topbarSection: { fontSize: '12px', color: 'var(--vc-muted)', fontFamily: 'var(--vc-mono)' },
     backBtn: { marginLeft: 'auto', background: 'none', border: '1px solid var(--vc-border)', color: 'var(--vc-muted)', cursor: 'pointer', fontSize: '11px', padding: '5px 12px', borderRadius: '4px' },
-    main: { padding: '24px', maxWidth: '600px', margin: '0 auto' },
-    pageHeader: { marginBottom: '24px' },
+    main: { maxWidth: '100%' },
+    pageHeader: { marginBottom: '20px' },
     pageTitle: { fontSize: '18px', fontWeight: '500', color: 'var(--vc-text)' },
     pageSub: { fontSize: '11px', color: 'var(--vc-muted)', marginTop: '2px', fontFamily: 'var(--vc-mono)' },
-    stepRow: { display: 'flex', alignItems: 'center', marginBottom: '24px' },
+    stepRow: { display: 'flex', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '4px' },
     stepItem: { display: 'flex', alignItems: 'center', gap: '8px' },
     stepDot: { width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: '600', fontFamily: 'var(--vc-mono)', flexShrink: 0 },
     stepLabel: { fontSize: '11px', fontFamily: 'var(--vc-mono)', whiteSpace: 'nowrap' },
-    stepLine: { width: '40px', height: '1px', marginLeft: '8px' },
-    formWrap: {},
+    stepLine: { width: '30px', height: '1px', marginLeft: '8px' },
     card: { background: 'var(--vc-surface)', border: '1px solid var(--vc-border)', borderRadius: '8px', padding: '20px' },
     cardHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--vc-border)' },
     cardTitle: { fontSize: '12px', fontWeight: '500', color: 'var(--vc-text)', letterSpacing: '0.04em' },
     fields: { display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' },
     field: { display: 'flex', flexDirection: 'column', gap: '6px' },
     label: { fontSize: '9px', fontWeight: '500', letterSpacing: '0.1em', color: 'var(--vc-muted)', fontFamily: 'var(--vc-mono)' },
-    input: { padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--vc-border)', background: 'var(--vc-surface2)', color: 'var(--vc-text)', fontSize: '13px', outline: 'none' },
+    input: { padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--vc-border)', background: 'var(--vc-surface2)', color: 'var(--vc-text)', fontSize: '13px', outline: 'none', width: '100%' },
     warnBox: { padding: '8px 12px', borderRadius: '4px', background: 'rgba(255,77,106,0.08)', border: '1px solid rgba(255,77,106,0.25)', color: 'var(--vc-red)', fontSize: '11px', fontFamily: 'var(--vc-mono)' },
     errorBox: { padding: '10px 14px', borderRadius: '6px', background: 'rgba(255,77,106,0.08)', border: '1px solid rgba(255,77,106,0.25)', color: 'var(--vc-red)', fontSize: '12px', fontFamily: 'var(--vc-mono)', marginBottom: '16px' },
     btn: { width: '100%', padding: '11px', borderRadius: '6px', border: 'none', background: 'var(--vc-gold)', color: '#1a0e00', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
     btnOutline: { flex: 1, padding: '11px', borderRadius: '6px', border: '1px solid var(--vc-border2)', background: 'transparent', color: 'var(--vc-muted)', fontSize: '13px', cursor: 'pointer' },
     btnRow: { display: 'flex', gap: '10px' },
-    confirmGrid: { display: 'flex', flexDirection: 'column', gap: '0', marginBottom: '20px' },
+    confirmGrid: { display: 'flex', flexDirection: 'column', marginBottom: '20px' },
     confirmRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' },
     confirmKey: { fontSize: '9px', fontWeight: '500', letterSpacing: '0.1em', color: 'var(--vc-muted)', fontFamily: 'var(--vc-mono)' },
     confirmVal: { fontSize: '13px', color: 'var(--vc-text)', fontWeight: '500' },

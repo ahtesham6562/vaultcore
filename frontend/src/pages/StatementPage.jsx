@@ -1,10 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import authService from "../services/authService";
+
+const useIsMobile = () => {
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    useEffect(() => {
+        const handler = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handler);
+        return () => window.removeEventListener('resize', handler);
+    }, []);
+    return isMobile;
+};
 
 export default function StatementPage({ onBack }) {
     const [loading, setLoading] = useState(false);
     const [done, setDone] = useState(false);
     const [error, setError] = useState('');
+    const isMobile = useIsMobile();
 
     const downloadStatement = async () => {
         setLoading(true);
@@ -37,17 +48,17 @@ export default function StatementPage({ onBack }) {
             <div style={s.topbar}>
                 <div style={s.logoMark} />
                 <span style={s.logoText}>Vault<span style={{ color: 'var(--vc-gold)' }}>Core</span></span>
-                <span style={s.topbarSection}>/ Statement</span>
-                <button style={s.backBtn} onClick={onBack}>← Dashboard</button>
+                {!isMobile && <span style={s.topbarSection}>/ Statement</span>}
+                <button style={s.backBtn} onClick={onBack}>← {isMobile ? '' : 'Dashboard'}</button>
             </div>
 
-            <div style={s.main}>
+            <div style={{ ...s.main, padding: isMobile ? '16px' : '24px' }}>
                 <div style={s.pageHeader}>
                     <div style={s.pageTitle}>Account Statement</div>
                     <div style={s.pageSub}>iText 8 · PDF generation · Full transaction history</div>
                 </div>
 
-                <div style={s.twoCol}>
+                <div style={{ ...s.twoCol, gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr' }}>
                     {/* Download Card */}
                     <div style={s.card}>
                         <div style={s.cardHead}>
@@ -80,13 +91,9 @@ export default function StatementPage({ onBack }) {
                             </div>
                         )}
 
-                        {error && (
-                            <div style={s.errorBox}>{error}</div>
-                        )}
+                        {error && <div style={s.errorBox}>{error}</div>}
 
-                        <button
-                            onClick={downloadStatement}
-                            disabled={loading}
+                        <button onClick={downloadStatement} disabled={loading}
                             style={loading ? s.btnDisabled : s.btn}>
                             {loading ? (
                                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
@@ -123,12 +130,14 @@ export default function StatementPage({ onBack }) {
                             ))}
                         </div>
 
-                        <div style={s.techNote}>
-                            <span style={s.techNoteLabel}>IMPLEMENTATION</span>
-                            <div style={s.techNoteCode}>
-                                {`StatementController\n→ UserRepository.findByUsername()\n→ LedgerRepo.findByAccountId()\n→ iText PdfDocument + Table\n→ ResponseEntity<byte[]>`}
+                        {!isMobile && (
+                            <div style={s.techNote}>
+                                <span style={s.techNoteLabel}>IMPLEMENTATION</span>
+                                <div style={s.techNoteCode}>
+                                    {`StatementController\n→ UserRepository.findByUsername()\n→ LedgerRepo.findByAccountId()\n→ iText PdfDocument + Table\n→ ResponseEntity<byte[]>`}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -138,16 +147,16 @@ export default function StatementPage({ onBack }) {
 
 const s = {
     shell: { minHeight: '100vh', background: 'var(--vc-bg)', fontFamily: 'var(--vc-sans)' },
-    topbar: { background: 'var(--vc-surface)', borderBottom: '1px solid var(--vc-border)', display: 'flex', alignItems: 'center', padding: '0 24px', gap: '10px', height: '52px' },
+    topbar: { background: 'var(--vc-surface)', borderBottom: '1px solid var(--vc-border)', display: 'flex', alignItems: 'center', padding: '0 16px', gap: '10px', height: '52px', position: 'sticky', top: 0, zIndex: 10 },
     logoMark: { width: '24px', height: '24px', background: 'var(--vc-gold)', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', flexShrink: 0 },
     logoText: { fontSize: '14px', fontWeight: '600', letterSpacing: '0.05em', color: 'var(--vc-text)' },
     topbarSection: { fontSize: '12px', color: 'var(--vc-muted)', fontFamily: 'var(--vc-mono)' },
     backBtn: { marginLeft: 'auto', background: 'none', border: '1px solid var(--vc-border)', color: 'var(--vc-muted)', cursor: 'pointer', fontSize: '11px', padding: '5px 12px', borderRadius: '4px' },
-    main: { padding: '24px' },
+    main: {},
     pageHeader: { marginBottom: '24px' },
     pageTitle: { fontSize: '18px', fontWeight: '500', color: 'var(--vc-text)' },
     pageSub: { fontSize: '11px', color: 'var(--vc-muted)', marginTop: '2px', fontFamily: 'var(--vc-mono)' },
-    twoCol: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
+    twoCol: { display: 'grid', gap: '12px' },
     card: { background: 'var(--vc-surface)', border: '1px solid var(--vc-border)', borderRadius: '8px', padding: '16px' },
     cardHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', paddingBottom: '10px', borderBottom: '1px solid var(--vc-border)' },
     cardTitle: { fontSize: '12px', fontWeight: '500', color: 'var(--vc-text)', letterSpacing: '0.04em' },
@@ -161,7 +170,7 @@ const s = {
     btn: { width: '100%', padding: '11px', borderRadius: '6px', border: 'none', background: 'var(--vc-gold)', color: '#1a0e00', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
     btnDisabled: { width: '100%', padding: '11px', borderRadius: '6px', border: 'none', background: 'var(--vc-surface2)', color: 'var(--vc-muted)', fontSize: '13px', fontWeight: '600', cursor: 'not-allowed' },
     spinner: { width: '12px', height: '12px', border: '2px solid rgba(26,14,0,0.3)', borderTop: '2px solid #1a0e00', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' },
-    featureList: { display: 'flex', flexDirection: 'column', gap: '0', marginBottom: '20px' },
+    featureList: { display: 'flex', flexDirection: 'column', marginBottom: '16px' },
     featureRow: { display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' },
     featureIcon: { fontSize: '14px', marginTop: '1px', flexShrink: 0 },
     featureLabel: { fontSize: '12px', color: 'var(--vc-text)', marginBottom: '2px' },
